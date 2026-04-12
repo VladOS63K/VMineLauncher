@@ -1,0 +1,83 @@
+{
+  "name": "vminelauncher",
+  "version": "1.0.0",
+  "description": "Minecraft Launcher by VladOS63K",
+  "license": "ISC",
+  "author": {
+    "name": "VladOS63K",
+    "email": "5volkovvv5@gmail.com",
+    "url": "http://vlados63k.xyz/"
+  },
+  "type": "commonjs",
+  "main": "main.js",
+  "build": {
+    "appId": "xyz.vlados63k.vminelauncher",
+    "productName": "VMineLauncher",
+    "copyright": "Copyright © 2026 VladOS63K",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "dist-electron/**/*",
+      "src/**/*",
+      "main.js",
+      "package.json",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ],
+    "publish": {
+      "provider": "generic",
+      "url": "https://github.com/VladOS63K/VMineLauncher"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "icon": "build/icon.png",
+      "category": "Game",
+      "artifactName": "${productName}-${version}-linux.${ext}"
+    }
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --linux deb tar.xz",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
+    "@babel/preset-react": "^7.28.5",
+    "babel-loader": "^10.0.0",
+    "css-loader": "^7.1.4",
+    "electron": "^29.4.6",
+    "electron-builder": "^26.8.1",
+    "style-loader": "^4.0.0",
+    "typescript": "^5.0.2"
+  },
+  "dependencies": {
+    "@electron/remote": "^2.1.3",
+    "@nich87/discord-rpc": "^1.0.0",
+    "blob-to-url": "^0.3.1",
+    "dayjs": "^1.11.20",
+    "glob": "^13.0.6",
+    "node-stream-zip": "^1.15.0",
+    "minecraft-launcher-core": "^3.18.2",
+    "open-file-manager": "^1.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  }
+}

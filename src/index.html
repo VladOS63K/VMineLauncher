@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VMineLauncher</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+      rel="stylesheet">
+  </head>
+  <body>
+    <div class="loading-container">
+      <img src="icon.png" width="128" height="128">
+    </div>
+    <div class="app-container" style="display: none;">
+
+      <div id="notification-container"></div>
+
+      <div class="tooltip">ToolTip</div>
+
+      <!-- Модальное окно - добавление сборки -->
+      <div id="add-build-modal" class="modal" popover>
+        <div class="modal-content">
+          <h2 data-transid="add-instance">Добавить сборку</h2>
+          <div class="setting-item">
+            <label for="new-build-name" data-transid="instance-name">Название сборки:</label>
+            <input type="text" id="new-build-name" />
+          </div>
+          <div class="setting-item version-selector">
+            <label for="new-build-version" data-transid="minecraft-version">Версия Minecraft:</label>
+            <select id="new-build-version"></select>
+          </div>
+          <div class="modal-actions">
+            <button id="modal-cancel-btn"
+              class="button secondary" data-transid="cancel">Отмена</button>
+            <button id="modal-add-build-btn" class="button" data-transid="add-instance-ok-button">Добавить</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Модальное окно - подтверждение удаления сборки -->
+      <div id="del-build-modal" class="modal" popover>
+        <div class="modal-content">
+          <img class="sticker" src="images/thinking.png">
+          <h2 data-transid="remove-instance-title">Удаление сборки</h2>
+          <p data-transid="remove-instance-content">Удалить сборку?<br>
+            Это действие необратимо.
+          </p>
+          <div class="modal-actions">
+            <button id="modal-cancel-btn"
+              class="button secondary" data-transid="cancel">Отмена</button>
+            <button id="modal-del-build-btn" class="button" data-transid="remove">Удалить</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Модальное окно - сообщение об ошибке -->
+      <div id="incorrect-exit-modal" class="modal" popover>
+        <div class="modal-content">
+          <img class="sticker" src="images/scared.png">
+          <h2 data-transid="error">Ошибка!</h2>
+          <p data-transid="error-dialog-content">Minecraft был завершен некорректно!<br>
+            Проверьте лог на наличие ошибок.
+          </p>
+          <p class="exit-code">Код выхода: </p>
+          <div class="modal-actions">
+            <button id="modal-cancel-btn" class="button" data-transid="ok">ОК</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Модальное окно - запрос на перезагрузку лаунчера -->
+      <div id="restart-modal" class="modal" popover>
+        <div class="modal-content">
+          <img class="sticker" src="images/expression.png">
+          <h2 data-transid="warning">Внимание!</h2>
+          <p data-transid="restart-launcher-dialog-content">Чтобы изменения вступили в силу, перезагрузите VMineLauncher.</p>
+          <div class="modal-actions">
+            <button id="modal-cancel-btn"
+              class="button secondary" data-transid="later">Позже</button>
+            <button id="modal-restart-btn" class="button" data-transid="restart">Перезагрузить</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Модальное окно - информация о ресурс-паке -->
+      <div id="respack-info-modal" class="modal" popover>
+        <div class="modal-content">
+          <h2 data-transid="resource-pack">Ресурс-пак</h2>
+          <h3 id="pack-name">Pack name</h2>
+          <div class="respack-info">
+            <img src>
+            <div class="info">
+              Description
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button id="modal-remove-respack-btn"
+              class="button secondary" data-transid="remove">Удалить</button>
+            <button id="modal-cancel-btn"
+              class="button" data-transid="ok">ОК</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Модальное окно - подтверждение удаления ресурс-пака -->
+      <div id="respack-remove-modal" class="modal" popover>
+        <div class="modal-content">
+          <img class="sticker" src="images/thinking.png">
+          <h2 data-transid="remove-respack-title">Удаление ресурс-пака</h2>
+          <p data-transid="remove-respack-content">Удалить Ресурс-пак?<br>
+            Это действие необратимо.
+          </p>
+          <div class="modal-actions">
+            <button id="modal-cancel-btn"
+              class="button secondary" data-transid="cancel">Отмена</button>
+            <button id="modal-remove-respack-accept-btn"
+              class="button" data-transid="remove">Удалить</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="window-controls">
+        <button id="minimize-btn" class="control-btn">
+          <i class="fas fa-window-minimize"></i>
+        </button>
+        <button id="maximize-btn" class="control-btn">
+          <i class="fas fa-window-maximize"></i>
+        </button>
+        <button id="close-btn" class="control-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="sidebar hidden">
+        <div class="logo">
+          <img src="icon.png" width="32" height="32">
+          <span>VMineLauncher</span>
+        </div>
+        <nav class="nav-menu">
+          <button class="nav-btn" data-section="play">
+            <div class="icon">
+              <i class="fas fa-play"></i>
+            </div>
+            <span data-transid="nav-play">Играть</span>
+          </button>
+          <button class="nav-btn" data-section="builds">
+            <div class="icon">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <span data-transid="nav-instances">Сборки</span>
+          </button>
+          <button class="nav-btn active" data-section="news">
+            <div class="icon">
+              <i class="fas fa-newspaper"></i>
+            </div>
+            <span data-transid="nav-news">Новости</span>
+          </button>
+          <button class="nav-btn" data-section="logs">
+            <div class="icon">
+              <i class="fas fa-code"></i>
+            </div>
+            <span data-transid="nav-logs">Логи</span>
+          </button>
+          <button class="nav-btn" data-section="settings">
+            <div class="icon">
+              <i class="fas fa-cog"></i>
+            </div>
+            <span data-transid="nav-settings">Настройки</span>
+          </button>
+          <button class="nav-btn" data-section="about">
+            <div class="icon">
+              <i class="fas fa-info"></i>
+            </div>
+            <span data-transid="nav-about">О VMineLauncher</span>
+          </button>
+        </nav>
+        <div class="user">
+          <img
+            src="https://ui-avatars.com/api/?background=6a5acd&color=fff&name=User"
+            width="32" height="32" data-tooltip="Иконка пользователя Discord">
+          <span>User</span>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="content-section" id="builds-section">
+          <h1 data-transid="instances-tab-title">Управление сборками</h1>
+          <div class="builds-container">
+            <div class="builds-header">
+              <button id="open-folder-btn" class="button secondary"
+                data-tooltip="Открыть папку лаунчера" data-toolid="open-launcher-folder">
+                <i class="fas fa-folder"></i>
+              </button>
+              <button id="add-build-btn" class="button">
+                <i class="fas fa-plus"></i> <span data-transid="add-instance">Добавить сборку</span>
+              </button>
+            </div>
+            <div id="builds-list" class="builds-list">
+              <!-- Сборки будут загружаться динамически -->
+            </div>
+          </div>
+        </div>
+
+        <div class="content-section" id="play-section">
+          <h1 data-transid="nav-play">Играть</h1>
+          <div class="play-container">
+            <div class="loading-game" style="display: none;">
+              <p>Запуск игры...</p>
+              <div class="progress">
+                <div class="progress-inner" style="width: 0%"></div>
+              </div>
+            </div>
+            <div style="width: 100%; display:flex; gap:5px;">
+              <select id="version-select" style="width: 100%;"
+                data-tooltip="Выберите сборку" data-toolid="select-instance-tooltip">
+              </select>
+              <button id="launch-btn" class="button">
+                <i class="fas fa-play"></i> <span data-transid="start-game">Запустить</span>
+              </button>
+            </div>
+            <div class="panels">
+              <div class="panel resource-packs">
+                <h2 data-transid="resource-packs">Ресурс-паки</h2>
+                <div class="content"></div>
+              </div>
+              <div class="panel screenshots">
+                <h2 data-transid="screenshots">Скриншоты</h2>
+                <div class="content"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-section active" id="news-section">
+          <h1 data-transid="nav-news">Новости</h1>
+          <div class="news-container">
+            <!-- Новости будут загружаться динамически -->
+            <div class="news-item">
+              <h3>Добро пожаловать в VMineLauncher!</h3>
+              <p>Ничего тут больше нет.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-section" id="logs-section">
+          <h1 data-transid="log-tab-title">Последний лог</h1>
+          <div class="logs-container">
+            <textarea class="logs" id="logs" readonly></textarea>
+          </div>
+        </div>
+
+        <div class="content-section" id="settings-section">
+          <h1 data-transid="nav-settings">Настройки</h1>
+          <div class="settings-container">
+            <div class="setting-item">
+              <label for="lang-select">Язык (Language)</label>
+              <select id="lang-select">
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="theme-toggle" data-transid="dark-theme">Темная тема</label>
+              <label class="switch">
+                <input type="checkbox" id="theme-toggle" />
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <label for="accent-color-selector" data-transid="accent-color">Акцентный цвет:</label>
+              <div id="accent-color-selector">
+                <div class="accent-color" id="accent-default" selected style="background-color: #6a5acd;"></div>
+                <div class="accent-color" id="accent-default" style="background-color: #5acd69;"></div>
+                <div class="accent-color" id="accent-default" style="background-color: #cd975a;"></div>
+                <div class="accent-color" id="accent-default" style="background-color: #cd5a5a;"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label for="wallpaper-select" data-transid="wallpaper">Обои</label>
+              <select id="wallpaper-select">
+              </select>
+            </div>
+            <div class="setting-item"
+              data-tooltip="Включите Discord Rich Presence, чтобы ваши друзья знали, во что вы сейчас играете." data-toolid="discord-rpc-tooltip">
+              <label for="rpc-enabled" data-transid="enable-discord-rpc">Включить Discord RPC</label>
+              <label class="switch">
+                <input type="checkbox" id="rpc-enabled" />
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <label for="nickname" data-transid="nickname">Никнейм</label>
+              <input type="text" id="nickname"
+                placeholder="Введите ваш никнейм" />
+            </div>
+            <div class="setting-item">
+              <label for="java-path" data-transid="java-path">Путь к Java</label>
+              <input type="text" id="java-path"
+                placeholder="Укажите путь к Java" />
+            </div>
+            <div class="setting-item" data-tooltip="Свободно сейчас: 0 ГБ">
+              <label for="ram-alloc" data-transid="alloc-ram">Выделено ОЗУ (ГБ)</label>
+              <input type="number" id="ram-alloc" min="1" max="16" value="2" />
+            </div>
+          </div>
+        </div>
+        <div class="content-section" id="about-section">
+          <h1 data-transid="nav-about">О VMineLauncher</h1>
+          <div class="about-container">
+            
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
