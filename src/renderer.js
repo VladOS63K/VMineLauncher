@@ -36,6 +36,12 @@ function randstring(len) {
   return output;
 }
 
+function format(str, ...values) {
+  return str.replace(/\${(\d+)}/g, function(match, index) {
+    return typeof values[index] !== 'undefined' ? values[index] : match;
+  });
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
 
   const loadingGame = document.querySelector(".loading-game");
@@ -159,7 +165,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function renderLanguages() {
+  async function renderLanguages() {
     const langSelect = document.getElementById("lang-select");
 
     const languages = Object.values(conf.LANGUAGE_ENDPOINTS);
@@ -173,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function renderAccentColors() {
+  async function renderAccentColors() {
     Object.values(document.getElementById("accent-color-selector").children).forEach((e) => {
       e.addEventListener("click", () => {
         Object.values(document.getElementById("accent-color-selector").children).forEach((ee) => {
@@ -185,7 +191,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function renderWallpapers() {
+  async function renderWallpapers() {
     // Загрузка списка обоев
     const wallpapers = conf.getWallpapers();
 
@@ -197,7 +203,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function reloadLanguage() {
+  async function reloadLanguage() {
     for (let i = 0; i < allElems.length; i++) {
       const elem = allElems[i];
       if (elem.dataset.tooltip && !elem.dataset.toolid) {
@@ -225,7 +231,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function reloadSettings() {
+  async function reloadSettings() {
     isConfigLoading = true;
     config = conf.loadConfig();
     if (config.firstRun) {
@@ -271,6 +277,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     isConfigLoading = false;
   }
 
+  async function checkUpdates() {
+    const r = await fetch("https://api.github.com/repos/VladOS63K/VMineLauncher/releases/latest", 
+      {
+        headers: {
+          "Accept": "application/vnd.github+json"
+        }
+      }
+    );
+    if (r.ok) {
+      const j = await r.json();
+      if (j.tag_name != pjson.version) {
+        document.getElementById("launcher-update-info").innerHTML = format(getTranslation(currentLang, "update-info"), pjson.version, j.tag_name);
+        document.getElementById("launcher-update-modal").showPopover();
+      }
+    }
+  }
+
   // Обработка Discord RPC
   ipcRenderer.on("avatar_url", (e, msg) => {
     document.querySelector(".user").querySelector("img").src = msg;
@@ -299,12 +322,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadTranslations();
 
   // Изначальная отрисовка
-  renderBuildsList();
-  renderLanguages();
-  renderAccentColors();
-  renderWallpapers();
-  reloadSettings();
-  reloadLanguage();
+  await renderBuildsList();
+  await renderLanguages();
+  await renderAccentColors();
+  await renderWallpapers();
+  await reloadSettings();
+  await reloadLanguage();
+  await checkUpdates();
   document.getElementById("version").innerHTML = `<span data-transid="version">Версия: </span>${pjson.version}`;
 
   setInterval(() => {
@@ -392,6 +416,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  document.getElementById("modal-update-btn").addEventListener("click", () => {
+    document.getElementById("launcher-update-modal").hidePopover();
+    child_process.exec('xdg-open https://github.com/VladOS63K/VMineLauncher/releases/latest');
+  });
+
   // Функция удаления сборки
   function deleteBuild(index, name) {
     if (isMinecraftRunning && runningInstanceName == name) {
@@ -425,7 +454,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("launch-btn").disabled = true;
     document.getElementById("launch-btn").innerHTML = `<i class=\"fas fa-check\"></i> ${getTranslation(currentLang, "game-started")}`;
     if (document.hasFocus()) {
-      showNotification(getTranslation("game-started-msg"));
+      showNotification(getTranslation(currentLang, "game-started-msg"));
     }
     else {
       if (Notification.permission === "granted") {
