@@ -29,17 +29,20 @@
         <div class="modal-content">
           <h2 data-transid="add-instance">Добавить сборку</h2>
           <div class="setting-item">
-            <label for="new-build-name" data-transid="instance-name">Название сборки:</label>
+            <label for="new-build-name" data-transid="instance-name">Название
+              сборки:</label>
             <input type="text" id="new-build-name" />
           </div>
           <div class="setting-item version-selector">
-            <label for="new-build-version" data-transid="minecraft-version">Версия Minecraft:</label>
+            <label for="new-build-version"
+              data-transid="minecraft-version">Версия Minecraft:</label>
             <select id="new-build-version"></select>
           </div>
           <div class="modal-actions">
             <button id="modal-cancel-btn"
               class="button secondary" data-transid="cancel">Отмена</button>
-            <button id="modal-add-build-btn" class="button" data-transid="add-instance-ok-button">Добавить</button>
+            <button id="modal-add-build-btn" class="button"
+              data-transid="add-instance-ok-button">Добавить</button>
           </div>
         </div>
       </div>
@@ -55,7 +58,8 @@
           <div class="modal-actions">
             <button id="modal-cancel-btn"
               class="button secondary" data-transid="cancel">Отмена</button>
-            <button id="modal-del-build-btn" class="button" data-transid="remove">Удалить</button>
+            <button id="modal-del-build-btn" class="button"
+              data-transid="remove">Удалить</button>
           </div>
         </div>
       </div>
@@ -65,12 +69,14 @@
         <div class="modal-content">
           <img class="sticker" src="images/scared.png">
           <h2 data-transid="error">Ошибка!</h2>
-          <p data-transid="error-dialog-content">Minecraft был завершен некорректно!<br>
+          <p data-transid="error-dialog-content">Minecraft был завершен
+            некорректно!<br>
             Проверьте лог на наличие ошибок.
           </p>
           <p class="exit-code">Код выхода: </p>
           <div class="modal-actions">
-            <button id="modal-cancel-btn" class="button" data-transid="ok">ОК</button>
+            <button id="modal-cancel-btn" class="button"
+              data-transid="ok">ОК</button>
           </div>
         </div>
       </div>
@@ -80,11 +86,13 @@
         <div class="modal-content">
           <img class="sticker" src="images/expression.png">
           <h2 data-transid="warning">Внимание!</h2>
-          <p data-transid="restart-launcher-dialog-content">Чтобы изменения вступили в силу, перезагрузите VMineLauncher.</p>
+          <p data-transid="restart-launcher-dialog-content">Чтобы изменения
+            вступили в силу, перезагрузите VMineLauncher.</p>
           <div class="modal-actions">
             <button id="modal-cancel-btn"
               class="button secondary" data-transid="later">Позже</button>
-            <button id="modal-restart-btn" class="button" data-transid="restart">Перезагрузить</button>
+            <button id="modal-restart-btn" class="button"
+              data-transid="restart">Перезагрузить</button>
           </div>
         </div>
       </div>
@@ -195,11 +203,13 @@
           <div class="builds-container">
             <div class="builds-header">
               <button id="open-folder-btn" class="button secondary"
-                data-tooltip="Открыть папку лаунчера" data-toolid="open-launcher-folder">
+                data-tooltip="Открыть папку лаунчера"
+                data-toolid="open-launcher-folder">
                 <i class="fas fa-folder"></i>
               </button>
               <button id="add-build-btn" class="button">
-                <i class="fas fa-plus"></i> <span data-transid="add-instance">Добавить сборку</span>
+                <i class="fas fa-plus"></i> <span
+                  data-transid="add-instance">Добавить сборку</span>
               </button>
             </div>
             <div id="builds-list" class="builds-list">
@@ -219,10 +229,12 @@
             </div>
             <div style="width: 100%; display:flex; gap:5px;">
               <select id="version-select" style="width: 100%;"
-                data-tooltip="Выберите сборку" data-toolid="select-instance-tooltip">
+                data-tooltip="Выберите сборку"
+                data-toolid="select-instance-tooltip">
               </select>
               <button id="launch-btn" class="button">
-                <i class="fas fa-play"></i> <span data-transid="start-game">Запустить</span>
+                <i class="fas fa-play"></i> <span
+                  data-transid="start-game">Запустить</span>
               </button>
             </div>
             <div class="panels">
@@ -265,29 +277,38 @@
               </select>
             </div>
             <div class="setting-item">
-              <label for="theme-toggle" data-transid="dark-theme">Темная тема</label>
+              <label for="theme-toggle" data-transid="dark-theme">Темная
+                тема</label>
               <label class="switch">
                 <input type="checkbox" id="theme-toggle" />
                 <span class="slider round"></span>
               </label>
             </div>
             <div class="setting-item">
-              <label for="accent-color-selector" data-transid="accent-color">Акцентный цвет:</label>
+              <label for="accent-color-selector"
+                data-transid="accent-color">Акцентный цвет:</label>
               <div id="accent-color-selector">
-                <div class="accent-color" id="accent-default" selected style="background-color: #6a5acd;"></div>
-                <div class="accent-color" id="accent-default" style="background-color: #5acd69;"></div>
-                <div class="accent-color" id="accent-default" style="background-color: #cd975a;"></div>
-                <div class="accent-color" id="accent-default" style="background-color: #cd5a5a;"></div>
+                <div class="accent-color" id="accent-default" selected
+                  style="background-color: #6a5acd;"></div>
+                <div class="accent-color" id="accent-default"
+                  style="background-color: #5acd69;"></div>
+                <div class="accent-color" id="accent-default"
+                  style="background-color: #cd975a;"></div>
+                <div class="accent-color" id="accent-default"
+                  style="background-color: #cd5a5a;"></div>
               </div>
             </div>
             <div class="setting-item">
-              <label for="wallpaper-select" data-transid="wallpaper">Обои</label>
+              <label for="wallpaper-select"
+                data-transid="wallpaper">Обои</label>
               <select id="wallpaper-select">
               </select>
             </div>
             <div class="setting-item"
-              data-tooltip="Включите Discord Rich Presence, чтобы ваши друзья знали, во что вы сейчас играете." data-toolid="discord-rpc-tooltip">
-              <label for="rpc-enabled" data-transid="enable-discord-rpc">Включить Discord RPC</label>
+              data-tooltip="Включите Discord Rich Presence, чтобы ваши друзья знали, во что вы сейчас играете."
+              data-toolid="discord-rpc-tooltip">
+              <label for="rpc-enabled"
+                data-transid="enable-discord-rpc">Включить Discord RPC</label>
               <label class="switch">
                 <input type="checkbox" id="rpc-enabled" />
                 <span class="slider round"></span>
@@ -299,12 +320,14 @@
                 placeholder="Введите ваш никнейм" />
             </div>
             <div class="setting-item">
-              <label for="java-path" data-transid="java-path">Путь к Java</label>
+              <label for="java-path" data-transid="java-path">Путь к
+                Java</label>
               <input type="text" id="java-path"
                 placeholder="Укажите путь к Java" />
             </div>
             <div class="setting-item" data-tooltip="Свободно сейчас: 0 ГБ">
-              <label for="ram-alloc" data-transid="alloc-ram">Выделено ОЗУ (ГБ)</label>
+              <label for="ram-alloc" data-transid="alloc-ram">Выделено ОЗУ
+                (ГБ)</label>
               <input type="number" id="ram-alloc" min="1" max="16" value="2" />
             </div>
           </div>
@@ -312,7 +335,10 @@
         <div class="content-section" id="about-section">
           <h1 data-transid="nav-about">О VMineLauncher</h1>
           <div class="about-container">
-            
+            <img src="icon.png" width="184" height="184">
+            <h1>VMineLauncher</h1>
+            <h3>By VladOS63K</h3>
+            <p id="version"><span data-transid="version">Версия: </span>1.1.0</p>
           </div>
         </div>
       </div>

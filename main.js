@@ -72,7 +72,13 @@ let mainWindow;
 var availableVersions = [];
 
 async function createWindow() {
-  await loadTranslations();
+  try {
+    await loadTranslations();
+  }
+  catch (e) {
+    console.error(e);
+    process.exit("Languages loading failed");
+  }
   mainWindow = new BrowserWindow({
     width: 1000,
     height: 650,

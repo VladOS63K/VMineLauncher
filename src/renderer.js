@@ -9,6 +9,7 @@ const child_process = require("child_process");
 const { openFileManager } = require("open-file-manager");
 const StreamZip = require('node-stream-zip');
 
+const pjson = require('../package.json');
 const conf = require("./config.js");
 const { loadTranslations, getTranslation } = require("./lang.js");
 
@@ -304,6 +305,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderWallpapers();
   reloadSettings();
   reloadLanguage();
+  document.getElementById("version").innerHTML = `<span data-transid="version">Версия: </span>${pjson.version}`;
 
   setInterval(() => {
     document.getElementById("ram-alloc").closest(".setting-item").dataset.tooltip = `${getTranslation(currentLang, "free-mem-now")} ${Math.floor(freemem() / 1024 / 1024 / 1024)} ${getTranslation(currentLang, "gigabytes")}`;
