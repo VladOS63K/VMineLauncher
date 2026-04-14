@@ -52,6 +52,9 @@
     },
     "deb": {
       "compression": null
+    },
+    "7z": {
+      "compressionLevel": 1
     }
   },
   "scripts": {
