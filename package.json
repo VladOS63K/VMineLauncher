@@ -43,18 +43,20 @@
     },
     "linux": {
       "target": [
-        "AppImage",
         "deb",
-        "rpm"
+        "tar.gz"
       ],
       "icon": "build/1024x1024.png",
       "category": "Game",
       "artifactName": "${productName}-${version}-linux.${ext}"
+    },
+    "deb": {
+      "compression": null
     }
   },
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --linux deb tar.xz",
+    "build": "electron-builder --linux",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
