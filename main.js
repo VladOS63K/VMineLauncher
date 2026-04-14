@@ -71,9 +71,49 @@ let mainWindow;
 
 var availableVersions = [];
 
-async function createWindow() {
+var loadTranslationsAttempts = 0;
+var loadVersionsAttempts = 0;
+
+async function retryLoadTranslations() {
   try {
     await loadTranslations();
+  }
+  catch (e) {
+    console.log("Trying to load languages, attempt " + loadTranslationsAttempts);
+    loadTranslationsAttempts++;
+    if (loadTranslationsAttempts > 5) {
+      throw new Error("Languages loading failed");
+    }
+    await retryLoadTranslations();
+  }
+}
+
+async function retryLoadVersions() {
+  try {
+    const r = await fetch("https://piston-meta.mojang.com/mc/game/version_manifest.json"); // fetch("https://mc-versions-api.net/api/java?detailed=true&order=desc");
+    if (r.ok) {
+      r.json().then((j) => {
+        availableVersions = j.versions;
+      });
+    }
+    else {
+      throw new Error(r.status);
+    }
+  }
+  catch (e) {
+    console.log("Trying to load versions, attempt " + loadVersionsAttempts);
+    loadVersionsAttempts++;
+    if (loadVersionsAttempts > 5) {
+      console.error("Can't get all versions list.");
+      throw new Error("Can't get all versions list.");
+    }
+    await retryLoadVersions();
+  }
+}
+
+async function createWindow() {
+  try {
+    await retryLoadTranslations();
   }
   catch (e) {
     console.error(e);
@@ -231,20 +271,11 @@ ipcMain.handle("remove_instance_folder", (event, p) => {
 ipcMain.handle("available_versions", (event) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const r = await fetch("https://piston-meta.mojang.com/mc/game/version_manifest.json"); // fetch("https://mc-versions-api.net/api/java?detailed=true&order=desc");
-      if (r.ok) {
-        r.json().then((j) => {
-          availableVersions = j.versions;
-          resolve(availableVersions);
-        });
-      }
-      else {
-        reject(r.status);
-      }
+      await retryLoadVersions();
+      resolve(availableVersions);
     }
     catch (e) {
-      console.error("Can't get all versions list.");
-      process.exit("Can't get all versions list.");
+      reject(e);
     }
   });
 });

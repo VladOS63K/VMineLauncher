@@ -124,6 +124,7 @@ body {
   border-radius: 5px;
   background: var(--content-bg);
   z-index: 999;
+  overflow: visible;
 }
 
 /* Minecraft Sticker */
