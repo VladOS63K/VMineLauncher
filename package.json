@@ -46,6 +46,7 @@
         "deb",
         "tar.gz"
       ],
+      "compression": "store",
       "icon": "build/1024x1024.png",
       "category": "Game",
       "artifactName": "${productName}-${version}-linux.${ext}"
@@ -53,9 +54,7 @@
     "deb": {
       "compression": null
     },
-    "7z": {
-      "compressionLevel": 1
-    }
+    "compression": "store"
   },
   "scripts": {
     "start": "electron .",
