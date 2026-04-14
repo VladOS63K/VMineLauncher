@@ -18,24 +18,15 @@
       "output": "dist",
       "buildResources": "build"
     },
+    "asar": true,
     "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "dist-electron/**/*",
-      "src/**/*",
-      "main.js",
+      "!**/*",
       "package.json",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/*.d.ts",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+      "main.js",
+      "src/**/*",
+      "node_modules/**/*",
+      "!**/*.{log,zip,rar,tar,7z,deb}",
+      "!.git"
     ],
     "publish": {
       "provider": "generic",
@@ -46,19 +37,17 @@
         "deb",
         "tar.gz"
       ],
-      "compression": "normal",
       "icon": "build/1024x1024.png",
       "category": "Game",
       "artifactName": "${productName}-${version}-linux.${ext}"
     },
     "deb": {
-      "compression": null
-    },
-    "compression": "normal"
+      "compression": "gz"
+    }
   },
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --linux",
+    "build": "export ELECTRON_BUILDER_COMPRESSION_LEVEL=6 && electron-builder --linux",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
