@@ -2,5 +2,6 @@ node_modules/
 dist/
 *.log
 *.gitignore
+package-lock.json
 gitbuilder.sh
 commit_msg.txt
