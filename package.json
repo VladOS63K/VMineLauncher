@@ -12,6 +12,7 @@
   "main": "main.js",
   "build": {
     "appId": "xyz.vlados63k.vminelauncher",
+    "executableName": "vminelauncher",
     "productName": "VMineLauncher",
     "copyright": "Copyright © 2026 VladOS63K",
     "directories": {
@@ -37,7 +38,7 @@
         "deb",
         "tar.gz"
       ],
-      "icon": "1024x1024.png",
+      "icon": "build/icons",
       "category": "Game",
       "artifactName": "${productName}-${version}-linux.${ext}"
     },
