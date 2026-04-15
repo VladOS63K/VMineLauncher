@@ -89,26 +89,29 @@ async function retryLoadTranslations() {
 }
 
 async function retryLoadVersions() {
-  try {
-    const r = await fetch("https://piston-meta.mojang.com/mc/game/version_manifest.json"); // fetch("https://mc-versions-api.net/api/java?detailed=true&order=desc");
-    if (r.ok) {
-      r.json().then((j) => {
-        availableVersions = j.versions;
-      });
+  return new Promise(async (resolve, reject) => {
+    try {
+      const r = await fetch("https://piston-meta.mojang.com/mc/game/version_manifest.json"); // fetch("https://mc-versions-api.net/api/java?detailed=true&order=desc");
+      if (r.ok) {
+        r.json().then((j) => {
+          availableVersions = j.versions;
+          resolve();
+        });
+      }
+      else {
+        reject(r.status);
+      }
     }
-    else {
-      throw new Error(r.status);
+    catch (e) {
+      console.log("Trying to load versions, attempt " + loadVersionsAttempts);
+      loadVersionsAttempts++;
+      if (loadVersionsAttempts > 5) {
+        console.error("Can't get all versions list.");
+        reject("Can't get all versions list.");
+      }
+      await retryLoadVersions();
     }
-  }
-  catch (e) {
-    console.log("Trying to load versions, attempt " + loadVersionsAttempts);
-    loadVersionsAttempts++;
-    if (loadVersionsAttempts > 5) {
-      console.error("Can't get all versions list.");
-      throw new Error("Can't get all versions list.");
-    }
-    await retryLoadVersions();
-  }
+  });
 }
 
 async function createWindow() {
