@@ -275,7 +275,7 @@ ipcMain.handle("available_versions", (event) => {
       resolve(availableVersions);
     }
     catch (e) {
-      reject(e);
+      process.exit(e);
     }
   });
 });

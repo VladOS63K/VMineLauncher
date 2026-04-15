@@ -1,6 +1,6 @@
 {
   "name": "vminelauncher",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Minecraft Launcher by VladOS63K",
   "license": "ISC",
   "author": {
@@ -37,7 +37,7 @@
         "deb",
         "tar.gz"
       ],
-      "icon": "build/1024x1024.png",
+      "icon": "1024x1024.png",
       "category": "Game",
       "artifactName": "${productName}-${version}-linux.${ext}"
     },
