@@ -1,6 +1,6 @@
 "use strict";
 
-const { app, BrowserWindow, ipcMain, nativeTheme } = require("electron");
+const { app, BrowserWindow, ipcMain, nativeTheme, Notification } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { totalmem } = require("os");
@@ -270,6 +270,10 @@ ipcMain.handle("create_instance_folder", (event, p) => {
 ipcMain.handle("remove_instance_folder", (event, p) => {
   fs.rmdirSync(p, { recursive: true });
 });
+
+ipcMain.on("show_notify", (e, params) => {
+  new Notification(params).show();
+})
 
 ipcMain.handle("available_versions", (event) => {
   return new Promise(async (resolve, reject) => {

@@ -110,8 +110,6 @@ body {
   height: 100vh;
   position: relative;
   overflow: hidden;
-  -webkit-app-region: drag;
-  /* Позволяет перетаскивать всё окно */
 }
 
 /* Подсказка */

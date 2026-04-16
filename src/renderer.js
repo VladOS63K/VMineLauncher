@@ -1,6 +1,6 @@
 "use strict";
 
-const { ipcRenderer } = require("electron");
+const { ipcRenderer, Notification } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { toBlobURL, toDataURI } = require("blob-to-url");
@@ -37,7 +37,7 @@ function randstring(len) {
 }
 
 function format(str, ...values) {
-  return str.replace(/\${(\d+)}/g, function(match, index) {
+  return str.replace(/\${(\d+)}/g, function (match, index) {
     return typeof values[index] !== 'undefined' ? values[index] : match;
   });
 }
@@ -278,7 +278,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function checkUpdates() {
-    const r = await fetch("https://api.github.com/repos/VladOS63K/VMineLauncher/releases/latest", 
+    const r = await fetch("https://api.github.com/repos/VladOS63K/VMineLauncher/releases/latest",
       {
         headers: {
           "Accept": "application/vnd.github+json"
@@ -457,10 +457,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       showNotification(getTranslation(currentLang, "game-started-msg"));
     }
     else {
-      if (Notification.permission === "granted") {
-        var n = new Notification("VMineLauncher", { body: getTranslation(currentLang, "game-started-msg"), badge: "icon96.png" });
-        new Audio("game_started.mp3").play();
-      }
+      ipcRenderer.send("show_notify", { title: "VMineLauncher", body: getTranslation(currentLang, "game-started-msg"), icon: "src/icon96.png", sound: "src/game_started.mp3" });
     }
   });
 
