@@ -3,7 +3,7 @@
 const { app, BrowserWindow, ipcMain, nativeTheme, Notification } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const { totalmem } = require("os");
+const os = require("os");
 const { openFileManager } = require("open-file-manager");
 const dayjs = require("dayjs");
 const mclc = require("minecraft-launcher-core");
@@ -287,6 +287,37 @@ ipcMain.handle("available_versions", (event) => {
   });
 });
 
+// Авторизация через Ely.by
+ipcMain.handle("auth-elyby", async (event, email, password) => {
+  try {
+    const response = await fetch("https://authserver.ely.by/auth/authenticate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agent: { name: "Minecraft", version: 1 },
+        username: email,
+        password: password,
+        clientToken: loadConfig().clientToken
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.accessToken) {
+      return {
+        success: true,
+        name: data.selectedProfile.name,
+        uuid: data.selectedProfile.id,
+        accessToken: data.accessToken
+      };
+    } else {
+      return { success: false, error: data.errorMessage || "Invalid credentials" };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 // Запуск Minecraft
 ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) => {
   runningInstanceName = instanceName;
@@ -296,14 +327,34 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
     try {
       // Проверка пути к Java
       if (!config.javaPath || !fs.existsSync(config.javaPath)) {
-        reject("Путь к Java не настроен или не найден");
+        reject("Java path is invalid");
         return;
       }
 
       // Проверка пути к Minecraft
       if (!fs.existsSync(path.join(CONFIG_DIR, "instances", instanceName))) {
-        reject("Путь к сборке не найден");
+        reject("Instance path is invalid");
         return;
+      }
+
+      if (config.accounts.length < 1 && config.activeAccountIndex < 0) {
+        reject("No accounts found");
+        return;
+      }
+
+      var auth;
+
+      if (config.accounts[config.activeAccountIndex].type == "offline") {
+        auth = mclc.Authenticator.getAuth(config.accounts[config.activeAccountIndex].name);
+      } else if (config.accounts[config.activeAccountIndex].type == "elyby") {
+        auth = {
+          // Тут ты либо вводишь логин/пароль, либо юзаешь существующий токен
+          access_token: config.accounts[config.activeAccountIndex].accessToken,
+          client_id: config.clientToken,
+          uuid: config.accounts[config.activeAccountIndex].uuid,
+          name: config.accounts[config.activeAccountIndex].name,
+          user_properties: "{}"
+        };
       }
 
       // Запуск Minecraft
@@ -327,7 +378,7 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
         // the getAuth function through the authorization field and instead
         // handling authentication outside before you initialize
         // MCLC so you can handle auth based errors and validation!
-        authorization: mclc.Authenticator.getAuth(config.nickname),
+        authorization: auth,
         root: path.join(CONFIG_DIR, "instances", instanceName),
         cache: path.join(CONFIG_DIR, ".cache"),
         version: {
@@ -338,7 +389,15 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
           max: `${config.allocatedRam}G`,
           min: "512M"
         },
-        javaPath: config.javaPath
+        javaPath: config.javaPath,
+        customArgs: (config.accounts[config.activeAccountIndex].type == "elyby") ? [
+          "-Dauthlibwrapper.bootstrap=true",
+          `-javaagent:${path.join(__dirname, "/libs/authlib-injector.jar=ely.by")}`,
+          // "-Dminecraft.api.auth.host=https://authserver.ely.by",
+          // "-Dminecraft.api.account.host=https://api.ely.by",
+          // "-Dminecraft.api.session.host=https://session.ely.by",
+          // "-Dminecraft.api.services.host=https://api.ely.by"
+        ] : null
       }
       launcher.launch(opts);
       resolve();

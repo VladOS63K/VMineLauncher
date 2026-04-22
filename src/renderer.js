@@ -3,6 +3,7 @@
 const { ipcRenderer, Notification } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const { toBlobURL, toDataURI } = require("blob-to-url");
 const { freemem, totalmem } = require("os");
 const child_process = require("child_process");
@@ -21,6 +22,7 @@ let selectedResPack = null;
 
 let deletingIndex = -1;
 let deletingName = "";
+let deletingAccountIndex = -1;
 
 const CHARS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
 
@@ -42,8 +44,38 @@ function format(str, ...values) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function getFaceFromEly(username) {
+  const skinUrl = `https://skinsystem.ely.by/skins/${username}.png`;
 
+  try {
+    const response = await fetch(skinUrl);
+    if (!response.ok) throw new Error('Skin not found');
+    const blob = await response.blob();
+    const img = new Image();
+    img.src = URL.createObjectURL(blob);
+
+    await new Promise(res => img.onload = res);
+    const canvas = document.createElement('canvas');
+    canvas.width = 8;
+    canvas.height = 8;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 8, 8, 8, 8, 0, 0, 8, 8);
+    const faceDataUrl = canvas.toDataURL('image/png');
+    return faceDataUrl;
+
+  } catch (err) {
+    showNotification(err, "error");
+    return null;
+  }
+}
+
+document.addEventListener("keydown", (ev) => {
+  if (ev.ctrlKey && ev.shiftKey && ev.key == "I") {
+    ipcRenderer.invoke("devtools");
+  }
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
   const loadingGame = document.querySelector(".loading-game");
 
   // Система уведомлений
@@ -68,12 +100,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       notification.remove();
     }, 3000);
   }
-
-  document.addEventListener("keydown", (ev) => {
-    if (ev.ctrlKey && ev.shiftKey && ev.key == "I") {
-      ipcRenderer.invoke("devtools");
-    }
-  });
 
   const allElems = document.getElementsByTagName("*");
 
@@ -163,6 +189,99 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (currentConfig.selectedVersion) {
       versionSelect.value = currentConfig.selectedVersion;
     }
+  }
+
+  // Функция для отрисовки списка аккаунтов
+  async function renderAccountsList() {
+    const accountsList = document.getElementById("accounts-list");
+    if (!accountsList) return;
+
+    accountsList.innerHTML = "";
+    const currentConfig = conf.loadConfig();
+    const accounts = currentConfig.accounts || [];
+    const activeIndex = currentConfig.activeAccountIndex;
+
+    accounts.forEach(async (account, index) => {
+      if (account.type === "elyby") {
+        await fetch("https://authserver.ely.by/auth/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: account.accessToken,
+            clientToken: currentConfig.clientToken
+          })
+        }).then(async (response) => {
+          if (!response.ok) {
+            // Удаляем аккаунт, если токен недействителен
+            accounts.splice(index, 1);
+            if (activeIndex >= index) {
+              currentConfig.activeAccountIndex = Math.max(0, activeIndex - 1);
+            }
+            conf.saveConfig(currentConfig);
+            renderAccountsList(); // Перерисовываем список
+            showNotification(format(getTranslation(currentLang, "account-removed"), account.name, account.type, "Token expired"), "info");
+          }
+        }).catch((e) => {
+          showNotification(e, "error");
+        });
+      }
+      const accountItem = document.createElement("div");
+      accountItem.className = `account-item ${index === activeIndex ? 'active' : ''}`;
+      accountItem.innerHTML = `
+        <div class="account-info">
+          <img src="${account.type === "elyby" ? await getFaceFromEly(account.name) : `https://minotar.net/avatar/${account.name}/32`}" width="32" height="32" class="account-avatar">
+          ${(index === activeIndex) ? `<i class="fa-solid fa-check"></i>` : ""}
+          <div class="account-details">
+            <div class="account-name">${account.name}</div>
+            <div class="account-uuid">UUID: ${account.uuid}</div>
+            <div class="account-type-label">${account.type === 'elyby' ? 'Ely.by' : getTranslation(currentLang, "offline")}</div>
+          </div>
+        </div>
+        <div class="account-actions">
+          ${((index !== activeIndex) && accounts.length > 1) ? `<button class="switch-btn button secondary" data-index="${index}"><i class="fas fa-exchange-alt"></i></button>` : ''}
+          <button class="delete-account-btn button secondary" data-index="${index}"><i class="fas fa-trash"></i></button>
+        </div>
+      `;
+      accountsList.appendChild(accountItem);
+    });
+
+    // Обновляем отображение активного пользователя в сайдбаре
+    if (activeIndex !== -1 && accounts[activeIndex]) {
+      const activeAccount = accounts[activeIndex];
+      document.querySelector(".user span").innerText = activeAccount.name;
+      if (activeAccount.type === "elyby") {
+        getFaceFromEly(activeAccount.name).then((url) => {
+          document.querySelector(".user img").src = url;
+        });
+      }
+      else {
+        document.querySelector(".user img").src = `https://minotar.net/avatar/${activeAccount.name}/32`;
+      }
+    } else {
+      document.querySelector(".user span").innerText = "Guest";
+      document.querySelector(".user img").src = "https://ui-avatars.com/api/?background=6a5acd&color=fff&name=Guest";
+    }
+
+    // Обработка переключения аккаунта
+    document.querySelectorAll(".switch-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const index = parseInt(e.currentTarget.dataset.index);
+        const config = conf.loadConfig();
+        config.activeAccountIndex = index;
+        conf.saveConfig(config);
+        renderAccountsList();
+        showNotification(getTranslation(currentLang, "account-switched-msg") || "Account switched", "success");
+      });
+    });
+
+    // Обработка удаления аккаунта
+    document.querySelectorAll(".delete-account-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const index = parseInt(e.currentTarget.dataset.index);
+        deletingAccountIndex = index;
+        document.getElementById("del-account-modal").showPopover();
+      });
+    });
   }
 
   async function renderLanguages() {
@@ -259,10 +378,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.body.style.backgroundImage = `url("file://${path.join(conf.CONFIG_DIR, "wallpapers", config.wallpaper)}")`
     }
 
-    if (config.nickname) {
-      document.getElementById("nickname").value = config.nickname;
-    }
-
     document.getElementById("rpc-enabled").checked = config.discordRPC;
 
     if (config.javaPath) {
@@ -273,6 +388,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     reloadResourcePacks();
     reloadScreenshots();
+    renderAccountsList();
 
     isConfigLoading = false;
   }
@@ -334,6 +450,97 @@ document.addEventListener("DOMContentLoaded", async () => {
   setInterval(() => {
     document.getElementById("ram-alloc").closest(".setting-item").dataset.tooltip = `${getTranslation(currentLang, "free-mem-now")} ${Math.floor(freemem() / 1024 / 1024 / 1024)} ${getTranslation(currentLang, "gigabytes")}`;
   }, 1500);
+
+  // Обработка кнопки добавления аккаунта
+  document.getElementById("add-account-btn").addEventListener("click", () => {
+    document.getElementById("new-account-nickname").value = "";
+    document.getElementById("elyby-email").value = "";
+    document.getElementById("elyby-password").value = "";
+    document.getElementById("add-account-modal").showPopover();
+  });
+
+  // Переключение полей в зависимости от типа аккаунта
+  document.getElementById("account-type").addEventListener("change", (e) => {
+    const type = e.target.value;
+    if (type === "offline") {
+      document.getElementById("offline-auth-fields").style.display = "block";
+      document.getElementById("elyby-auth-fields").style.display = "none";
+    } else {
+      document.getElementById("offline-auth-fields").style.display = "none";
+      document.getElementById("elyby-auth-fields").style.display = "block";
+    }
+  });
+
+  // Обработка добавления аккаунта в модальном окне
+  document.getElementById("modal-add-account-btn").addEventListener("click", async () => {
+    const type = document.getElementById("account-type").value;
+    const currentConfig = conf.loadConfig();
+    if (!currentConfig.accounts) currentConfig.accounts = [];
+
+    let newAccount = null;
+
+    if (type === "offline") {
+      const name = document.getElementById("new-account-nickname").value;
+      if (!name) return;
+      newAccount = {
+        name: name,
+        uuid: crypto.randomUUID(), // Простой UUID для оффлайн аккаунта
+        type: "offline"
+      };
+    } else if (type === "elyby") {
+      const email = document.getElementById("elyby-email").value;
+      const password = document.getElementById("elyby-password").value;
+      if (!email || !password) return;
+
+      // Вызываем основной процесс для аутентификации Ely.by
+      try {
+        const authResult = await ipcRenderer.invoke("auth-elyby", email, password);
+        if (authResult.success) {
+          newAccount = {
+            name: authResult.name,
+            uuid: authResult.uuid,
+            accessToken: authResult.accessToken,
+            type: "elyby"
+          };
+        } else {
+          showNotification(authResult.error || "Authentication failed", "error");
+          return;
+        }
+      } catch (error) {
+        showNotification("Error during Ely.by authentication", "error");
+        return;
+      }
+    }
+
+    if (newAccount) {
+      currentConfig.accounts.push(newAccount);
+      currentConfig.activeAccountIndex = currentConfig.accounts.length - 1;
+      conf.saveConfig(currentConfig);
+      renderAccountsList();
+      document.getElementById("add-account-modal").hidePopover();
+      showNotification(getTranslation(currentLang, "account-added-msg") || "Account added", "success");
+    }
+  });
+
+  // Обработка удаления аккаунта в модальном окне
+  document.getElementById("modal-del-account-btn").addEventListener("click", () => {
+    if (deletingAccountIndex !== -1) {
+      const currentConfig = conf.loadConfig();
+      currentConfig.accounts.splice(deletingAccountIndex, 1);
+
+      // Корректируем индекс активного аккаунта
+      if (currentConfig.activeAccountIndex === deletingAccountIndex) {
+        currentConfig.activeAccountIndex = currentConfig.accounts.length > 0 ? 0 : -1;
+      } else if (currentConfig.activeAccountIndex > deletingAccountIndex) {
+        currentConfig.activeAccountIndex--;
+      }
+
+      conf.saveConfig(currentConfig);
+      renderAccountsList();
+      document.getElementById("del-account-modal").hidePopover();
+      showNotification(getTranslation(currentLang, "account-removed-msg") || "Account removed", "success");
+    }
+  });
 
   // Обработка кнопки добавления
   document.getElementById("add-build-btn").addEventListener("click", () => {
@@ -640,7 +847,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("close-btn").addEventListener("click", () => {
     if (isMinecraftRunning) {
-      showNotification(getTranslation("minecraft-starting-msg"), "error");
+      showNotification(getTranslation(currentLang, "minecraft-starting-msg"), "error");
       return;
     }
     ipcRenderer.send("close-window");
@@ -689,7 +896,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     config.selectedVersion = document.getElementById("version-select").value;
     config.accent = document.querySelector("#accent-color-selector *[selected]").style.backgroundColor;
     config.wallpaper = document.getElementById("wallpaper-select").value;
-    config.nickname = document.getElementById("nickname").value;
     config.discordRPC = document.getElementById("rpc-enabled").checked;
     config.javaPath = document.getElementById("java-path").value;
     config.allocatedRam = parseInt(document.getElementById("ram-alloc").value) || 2;
@@ -700,7 +906,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Обработка изменения настроек
   document.getElementById("version-select").addEventListener("change", saveConfigSettings);
   document.getElementById("wallpaper-select").addEventListener("change", saveConfigSettings);
-  document.getElementById("nickname").addEventListener("change", saveConfigSettings);
   document.getElementById("java-path").addEventListener("change", saveConfigSettings);
   document.getElementById("ram-alloc").addEventListener("change", saveConfigSettings);
 

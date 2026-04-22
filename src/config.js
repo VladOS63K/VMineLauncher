@@ -41,8 +41,9 @@ const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 const DEFAULT_CONFIG = {
   firstRun: true,
   lang: "ru",
-  nickname: "Player",
-  uuid: "",
+  clientToken: null, // Требуется для аутентификации в Ely.by
+  accounts: [],
+  activeAccountIndex: -1,
   accent: "#6a5acd",
   wallpaper: null,
   theme: "dark",
@@ -101,6 +102,19 @@ function loadConfig() {
       config = { ...config, ...JSON.parse(configData) };
     }
 
+    // Миграция со старой системы аккаунтов
+    if (config.nickname && (!config.accounts || config.accounts.length === 0)) {
+      config.accounts = [{
+        name: config.nickname,
+        uuid: config.uuid || randomUUID(),
+        type: "offline"
+      }];
+      config.activeAccountIndex = 0;
+      delete config.nickname;
+      delete config.uuid;
+      saveConfig(config);
+    }
+
     // Если путь к Java не установлен, пытаемся найти автоматически
     if (!config.javaPath) {
       const javaPath = findJavaPath();
@@ -110,9 +124,9 @@ function loadConfig() {
       }
     }
 
-    // Если UUID не был сгенерирован, генерируем его
-    if (!config.uuid || config.uuid == "00000000-0000-0000-0000-000000000000") {
-      config.uuid = randomUUID();
+    // Если токен лаунчера не был сгенерирован, генерируем его
+    if (!config.clientToken || config.clientToken == "00000000-0000-0000-0000-000000000000") {
+      config.clientToken = randomUUID();
       saveConfig(config);
     }
   } catch (error) {

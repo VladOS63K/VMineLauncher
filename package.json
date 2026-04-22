@@ -26,6 +26,7 @@
       "main.js",
       "src/**/*",
       "node_modules/**/*",
+      "libs/**/*",
       "!**/*.{log,zip,rar,tar,7z,deb}",
       "!.git"
     ],

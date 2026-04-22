@@ -23,6 +23,63 @@
 
       <div id="notification-container"></div>
 
+      <!-- Модальное окно - добавление аккаунта -->
+      <div id="add-account-modal" class="modal" popover>
+        <div class="modal-content">
+          <h2 data-transid="add-account">Добавить аккаунт</h2>
+          <div class="setting-item">
+            <label for="account-type" data-transid="account-type">Тип
+              аккаунта:</label>
+            <select id="account-type">
+              <option value="offline" data-transid="offline">Оффлайн</option>
+              <option value="elyby">Ely.by</option>
+            </select>
+          </div>
+          <div id="offline-auth-fields">
+            <div class="setting-item">
+              <label for="new-account-nickname"
+                data-transid="nickname">Никнейм</label>
+              <input type="text" id="new-account-nickname" />
+            </div>
+          </div>
+          <div id="elyby-auth-fields" style="display: none;">
+            <div class="setting-item">
+              <label for="elyby-email" data-transid="email">Email /
+                Логин</label>
+              <input type="text" id="elyby-email" />
+            </div>
+            <div class="setting-item">
+              <label for="elyby-password" data-transid="password">Пароль</label>
+              <input type="password" id="elyby-password" />
+            </div>
+            <p data-transid="elyby-2fa-warning">Если вы используете 2FA, то вам
+              нужно ввести 2FA токен в поле "Пароль" в формате пароль:токен</p>
+          </div>
+          <div class="modal-actions">
+            <button id="modal-cancel-btn" class="button secondary"
+              data-transid="cancel">Отмена</button>
+            <button id="modal-add-account-btn" class="button"
+              data-transid="add-account">Добавить</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Модальное окно - подтверждение удаления аккаунта -->
+      <div id="del-account-modal" class="modal" popover>
+        <div class="modal-content">
+          <img class="sticker" src="images/thinking.png">
+          <h2 data-transid="remove-account-title">Удаление аккаунта</h2>
+          <p data-transid="remove-account-content">Вы уверены, что хотите
+            удалить этот аккаунт?</p>
+          <div class="modal-actions">
+            <button id="modal-cancel-btn" class="button secondary"
+              data-transid="cancel">Отмена</button>
+            <button id="modal-del-account-btn" class="button"
+              data-transid="remove">Удалить</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Модальное окно - добавление сборки -->
       <div id="add-build-modal" class="modal" popover>
         <div class="modal-content">
@@ -142,7 +199,8 @@
           <div class="modal-actions">
             <button id="modal-cancel-btn"
               class="button secondary" data-transid="cancel">Отмена</button>
-            <button id="modal-update-btn" class="button" data-transid="update">Обновить!</button>
+            <button id="modal-update-btn" class="button"
+              data-transid="update">Обновить!</button>
           </div>
         </div>
       </div>
@@ -204,9 +262,9 @@
         </nav>
         <div class="user">
           <img
-            src="https://ui-avatars.com/api/?background=6a5acd&color=fff&name=User"
-            width="32" height="32" data-tooltip="Иконка пользователя Discord">
-          <span>User</span>
+            src="https://ui-avatars.com/api/?background=6a5acd&color=fff&name=Guest"
+            width="32" height="32">
+          <span>Guest</span>
         </div>
       </div>
 
@@ -284,64 +342,94 @@
         <div class="content-section" id="settings-section">
           <h1 data-transid="nav-settings">Настройки</h1>
           <div class="settings-container">
-            <div class="setting-item">
-              <label for="lang-select">Язык (Language)</label>
-              <select id="lang-select">
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="theme-toggle" data-transid="dark-theme">Темная
-                тема</label>
-              <label class="switch">
-                <input type="checkbox" id="theme-toggle" />
-                <span class="slider round"></span>
-              </label>
-            </div>
-            <div class="setting-item">
-              <label for="accent-color-selector"
-                data-transid="accent-color">Акцентный цвет:</label>
-              <div id="accent-color-selector">
-                <div class="accent-color" id="accent-default" selected
-                  style="background-color: #6a5acd;"></div>
-                <div class="accent-color" id="accent-default"
-                  style="background-color: #5acd69;"></div>
-                <div class="accent-color" id="accent-default"
-                  style="background-color: #cd975a;"></div>
-                <div class="accent-color" id="accent-default"
-                  style="background-color: #cd5a5a;"></div>
+            <div class="setting-group">
+              <div class="title">Оформление</div>
+
+              <div class="setting-item">
+                <label for="lang-select">Язык (Language)</label>
+                <select id="lang-select">
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="theme-toggle" data-transid="dark-theme">Темная
+                  тема</label>
+                <label class="switch">
+                  <input type="checkbox" id="theme-toggle" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <label for="accent-color-selector"
+                  data-transid="accent-color">Акцентный цвет:</label>
+                <div id="accent-color-selector">
+                  <div class="accent-color" id="accent-default" selected
+                    style="background-color: #6a5acd;"></div>
+                  <div class="accent-color" id="accent-default"
+                    style="background-color: #5acd69;"></div>
+                  <div class="accent-color" id="accent-default"
+                    style="background-color: #cd975a;"></div>
+                  <div class="accent-color" id="accent-default"
+                    style="background-color: #cd5a5a;"></div>
+                </div>
+              </div>
+
+              <div class="setting-item">
+                <label for="wallpaper-select"
+                  data-transid="wallpaper">Обои</label>
+                <select id="wallpaper-select">
+                </select>
               </div>
             </div>
-            <div class="setting-item">
-              <label for="wallpaper-select"
-                data-transid="wallpaper">Обои</label>
-              <select id="wallpaper-select">
-              </select>
+
+            <div class="setting-group">
+              <div class="title">VMineLauncher</div>
+
+              <div class="setting-item"
+                data-tooltip="Включите Discord Rich Presence, чтобы ваши друзья знали, во что вы сейчас играете."
+                data-toolid="discord-rpc-tooltip">
+                <label for="rpc-enabled"
+                  data-transid="enable-discord-rpc">Включить Discord RPC</label>
+                <label class="switch">
+                  <input type="checkbox" id="rpc-enabled" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
             </div>
-            <div class="setting-item"
-              data-tooltip="Включите Discord Rich Presence, чтобы ваши друзья знали, во что вы сейчас играете."
-              data-toolid="discord-rpc-tooltip">
-              <label for="rpc-enabled"
-                data-transid="enable-discord-rpc">Включить Discord RPC</label>
-              <label class="switch">
-                <input type="checkbox" id="rpc-enabled" />
-                <span class="slider round"></span>
-              </label>
+
+            <div class="setting-group">
+              <div class="title">Игра</div>
+
+              <div class="setting-item">
+                <label for="java-path" data-transid="java-path">Путь к
+                  Java</label>
+                <input type="text" id="java-path"
+                  placeholder="Укажите путь к Java" />
+              </div>
+
+              <div class="setting-item" data-tooltip="Свободно сейчас: 0 ГБ">
+                <label for="ram-alloc" data-transid="alloc-ram">Выделено ОЗУ
+                  (ГБ)</label>
+                <input type="number" id="ram-alloc" min="1" max="16"
+                  value="2" />
+              </div>
             </div>
-            <div class="setting-item">
-              <label for="nickname" data-transid="nickname">Никнейм</label>
-              <input type="text" id="nickname"
-                placeholder="Введите ваш никнейм" />
-            </div>
-            <div class="setting-item">
-              <label for="java-path" data-transid="java-path">Путь к
-                Java</label>
-              <input type="text" id="java-path"
-                placeholder="Укажите путь к Java" />
-            </div>
-            <div class="setting-item" data-tooltip="Свободно сейчас: 0 ГБ">
-              <label for="ram-alloc" data-transid="alloc-ram">Выделено ОЗУ
-                (ГБ)</label>
-              <input type="number" id="ram-alloc" min="1" max="16" value="2" />
+
+            <div class="setting-group">
+              <div class="title">Аккаунты</div>
+
+              <div class="setting-item">
+                <p data-transid="manage-accounts">Управление аккаунтами</p>
+                <button id="add-account-btn" class="button">
+                  <i class="fas fa-user-plus"></i> <span
+                    data-transid="add-account">Доб. аккаунт</span>
+                </button>
+              </div>
+
+              <div id="accounts-list" class="accounts-list">
+                <!-- Аккаунты будут загружаться динамически -->
+              </div>
             </div>
           </div>
         </div>
@@ -351,7 +439,8 @@
             <img src="icon.png" width="184" height="184">
             <h1>VMineLauncher</h1>
             <h3>By VladOS63K</h3>
-            <p id="version"><span data-transid="version">Версия: </span>1.1.0</p>
+            <p id="version"><span data-transid="version">Версия:
+              </span>1.1.0</p>
           </div>
         </div>
       </div>
