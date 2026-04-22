@@ -42,6 +42,7 @@
 
 img {
   -webkit-user-drag: none;
+  image-rendering: pixelated;
 }
 
 *::-webkit-scrollbar {
