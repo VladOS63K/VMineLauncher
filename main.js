@@ -428,7 +428,7 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
         javaPath: config.javaPath,
         customArgs: (config.accounts[config.activeAccountIndex].type == "elyby") ? [
           "-Dauthlibwrapper.bootstrap=true",
-          `-javaagent:${path.join(CONFIG_DIR, "authlib-injector.jar")}`,
+          `-javaagent:${path.join(CONFIG_DIR, "authlib-injector.jar")}=ely.by`,
           // "-Dminecraft.api.auth.host=https://authserver.ely.by",
           // "-Dminecraft.api.account.host=https://api.ely.by",
           // "-Dminecraft.api.session.host=https://session.ely.by",
