@@ -114,6 +114,32 @@ async function retryLoadVersions() {
   });
 }
 
+async function tryDownloadAuthlibInjector() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const r = await fetch("https://github.com/yushijinhun/authlib-injector/releases/download/v1.2.7/authlib-injector-1.2.7.jar");
+      if (r.ok) {
+        r.blob().then(async (blob) => {
+          fs.writeFileSync(path.join(CONFIG_DIR, "authlib-injector.jar"), Buffer.from(await blob.arrayBuffer()));
+          resolve();
+        });
+      }
+      else {
+        reject(r.status);
+      }
+    }
+    catch (e) {
+      console.log("Trying to download authlib injector, attempt " + loadVersionsAttempts);
+      loadVersionsAttempts++;
+      if (loadVersionsAttempts > 5) {
+        console.error("Can't download authlib injector.");
+        reject("Can't download authlib injector.");
+      }
+      await tryDownloadAuthlibInjector();
+    }
+  });
+}
+
 async function createWindow() {
   try {
     await retryLoadTranslations();
@@ -197,6 +223,16 @@ async function createWindow() {
       console.log("[RPC] Init error:", e);
       mainWindow.webContents.send("rpc-error", e);
     });
+  }
+
+  if (!fs.existsSync(path.join(CONFIG_DIR, "authlib-injector.jar"))) {
+    try {
+      await tryDownloadAuthlibInjector();
+      console.log("Authlib injector downloaded successfully");
+    }
+    catch (e) {
+      console.error("Failed to download authlib injector:", e);
+    }
   }
 }
 
@@ -392,7 +428,7 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
         javaPath: config.javaPath,
         customArgs: (config.accounts[config.activeAccountIndex].type == "elyby") ? [
           "-Dauthlibwrapper.bootstrap=true",
-          `-javaagent:${path.join(__dirname, "/libs/authlib-injector.jar=ely.by")}`,
+          `-javaagent:${path.join(CONFIG_DIR, "authlib-injector.jar")}`,
           // "-Dminecraft.api.auth.host=https://authserver.ely.by",
           // "-Dminecraft.api.account.host=https://api.ely.by",
           // "-Dminecraft.api.session.host=https://session.ely.by",
