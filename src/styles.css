@@ -42,7 +42,10 @@
 
 img {
   -webkit-user-drag: none;
-  image-rendering: pixelated;
+
+  &.pixelated {
+    image-rendering: pixelated;
+  }
 }
 
 *::-webkit-scrollbar {

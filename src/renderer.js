@@ -229,7 +229,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       accountItem.className = `account-item ${index === activeIndex ? 'active' : ''}`;
       accountItem.innerHTML = `
         <div class="account-info">
-          <img src="${account.type === "elyby" ? await getFaceFromEly(account.name) : `https://minotar.net/avatar/${account.name}/32`}" width="32" height="32" class="account-avatar">
+          <img src="${account.type === "elyby" ? await getFaceFromEly(account.name) : `https://minotar.net/avatar/${account.name}/32`}" width="32" height="32" class="account-avatar pixelated">
           ${(index === activeIndex) ? `<i class="fa-solid fa-check"></i>` : ""}
           <div class="account-details">
             <div class="account-name">${account.name}</div>
@@ -237,11 +237,35 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="account-type-label">${account.type === 'elyby' ? 'Ely.by' : getTranslation(currentLang, "offline")}</div>
           </div>
         </div>
-        <div class="account-actions">
-          ${((index !== activeIndex) && accounts.length > 1) ? `<button class="switch-btn button secondary" data-index="${index}"><i class="fas fa-exchange-alt"></i></button>` : ''}
-          <button class="delete-account-btn button secondary" data-index="${index}"><i class="fas fa-trash"></i></button>
-        </div>
       `;
+      const accountActions = document.createElement("div");
+      accountActions.className = "account-actions";
+      if ((index !== activeIndex) && accounts.length > 1) {
+        const switchBtn = document.createElement("button");
+        switchBtn.className = "switch-btn button secondary";
+        switchBtn.dataset.index = index;
+        switchBtn.innerHTML = '<i class="fas fa-exchange-alt"></i>';
+        switchBtn.addEventListener("click", (e) => {
+          const index = parseInt(e.currentTarget.dataset.index);
+          const config = conf.loadConfig();
+          config.activeAccountIndex = index;
+          conf.saveConfig(config);
+          renderAccountsList();
+          showNotification(getTranslation(currentLang, "account-switched-msg") || "Account switched", "success");
+        });
+        accountActions.appendChild(switchBtn);
+      }
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-account-btn button secondary";
+      deleteBtn.dataset.index = index;
+      deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+      deleteBtn.addEventListener("click", (e) => {
+        const index = parseInt(e.currentTarget.dataset.index);
+        deletingAccountIndex = index;
+        document.getElementById("del-account-modal").showPopover();
+      });
+      accountActions.appendChild(deleteBtn);
+      accountItem.appendChild(accountActions);
       accountsList.appendChild(accountItem);
     });
 
@@ -261,27 +285,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector(".user span").innerText = "Guest";
       document.querySelector(".user img").src = "https://ui-avatars.com/api/?background=6a5acd&color=fff&name=Guest";
     }
-
-    // Обработка переключения аккаунта
-    document.querySelectorAll(".switch-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const index = parseInt(e.currentTarget.dataset.index);
-        const config = conf.loadConfig();
-        config.activeAccountIndex = index;
-        conf.saveConfig(config);
-        renderAccountsList();
-        showNotification(getTranslation(currentLang, "account-switched-msg") || "Account switched", "success");
-      });
-    });
-
-    // Обработка удаления аккаунта
-    document.querySelectorAll(".delete-account-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const index = parseInt(e.currentTarget.dataset.index);
-        deletingAccountIndex = index;
-        document.getElementById("del-account-modal").showPopover();
-      });
-    });
   }
 
   async function renderLanguages() {

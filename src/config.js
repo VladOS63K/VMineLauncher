@@ -29,8 +29,8 @@ const POSSIBLE_JAVA_PATHS = {
 };
 
 const LANGUAGE_ENDPOINTS = [
-  {lang: "en", endpoint: "https://localise.biz/api/export/locale/en.json?key=bSbcXshzd91RihGzANxqBZxxLDis62dO"},
-  {lang: "ru", endpoint: "https://localise.biz/api/export/locale/ru-RU.json?key=bSbcXshzd91RihGzANxqBZxxLDis62dO"}
+  { lang: "en", endpoint: "https://localise.biz/api/export/locale/en.json?key=bSbcXshzd91RihGzANxqBZxxLDis62dO" },
+  { lang: "ru", endpoint: "https://localise.biz/api/export/locale/ru-RU.json?key=bSbcXshzd91RihGzANxqBZxxLDis62dO" }
 ];
 
 // Пути конфигурации
