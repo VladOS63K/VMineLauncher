@@ -202,29 +202,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const activeIndex = currentConfig.activeAccountIndex;
 
     accounts.forEach(async (account, index) => {
-      if (account.type === "elyby") {
-        await fetch("https://authserver.ely.by/auth/validate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accessToken: account.accessToken,
-            clientToken: currentConfig.clientToken
-          })
-        }).then(async (response) => {
-          if (!response.ok) {
-            // Удаляем аккаунт, если токен недействителен
-            accounts.splice(index, 1);
-            if (activeIndex >= index) {
-              currentConfig.activeAccountIndex = Math.max(0, activeIndex - 1);
-            }
-            conf.saveConfig(currentConfig);
-            renderAccountsList(); // Перерисовываем список
-            showNotification(format(getTranslation(currentLang, "account-removed"), account.name, account.type, "Token expired"), "info");
-          }
-        }).catch((e) => {
-          showNotification(e, "error");
-        });
-      }
       const accountItem = document.createElement("div");
       accountItem.className = `account-item ${index === activeIndex ? 'active' : ''}`;
       accountItem.innerHTML = `
@@ -267,6 +244,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       accountActions.appendChild(deleteBtn);
       accountItem.appendChild(accountActions);
       accountsList.appendChild(accountItem);
+
+      if (account.type === "elyby") {
+        await fetch("https://authserver.ely.by/auth/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: account.accessToken,
+            clientToken: currentConfig.clientToken
+          })
+        }).then(async (response) => {
+          if (!response.ok) {
+            // Удаляем аккаунт, если токен недействителен
+            accounts.splice(index, 1);
+            if (activeIndex >= index) {
+              currentConfig.activeAccountIndex = Math.max(0, activeIndex - 1);
+            }
+            conf.saveConfig(currentConfig);
+            renderAccountsList(); // Перерисовываем список
+            showNotification(format(getTranslation(currentLang, "account-removed"), account.name, account.type, "Token expired"), "info");
+          }
+        }).catch((e) => {
+          showNotification(e, "error");
+        });
+      }
     });
 
     // Обновляем отображение активного пользователя в сайдбаре
@@ -382,6 +383,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     document.getElementById("rpc-enabled").checked = config.discordRPC;
+    document.getElementById("minimize-to-tray-on-game-start").checked = config.minimizeToTrayOnGameStart;
+    document.getElementById("minimize-to-tray-on-close").checked = config.minimizeToTrayOnClose;
+    document.getElementById("check-updates").checked = config.checkUpdates;
 
     if (config.javaPath) {
       document.getElementById("java-path").value = config.javaPath;
@@ -441,13 +445,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadTranslations();
 
   // Изначальная отрисовка
-  await renderBuildsList();
-  await renderLanguages();
-  await renderAccentColors();
-  await renderWallpapers();
-  await reloadSettings();
-  await reloadLanguage();
-  await checkUpdates();
+  try {
+    await renderBuildsList();
+    await renderLanguages();
+    await renderAccentColors();
+    await renderWallpapers();
+    await reloadSettings();
+    await reloadLanguage();
+    if (config.checkUpdates) await checkUpdates();
+  } catch (e) {
+    showNotification(e, "error");
+  }
   document.getElementById("version").innerHTML = `<span data-transid="version">Версия: </span>${pjson.version}`;
 
   setInterval(() => {
@@ -519,6 +527,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       currentConfig.accounts.push(newAccount);
       currentConfig.activeAccountIndex = currentConfig.accounts.length - 1;
       conf.saveConfig(currentConfig);
+      ipcRenderer.send("config-changed");
       renderAccountsList();
       document.getElementById("add-account-modal").hidePopover();
       showNotification(getTranslation(currentLang, "account-added-msg") || "Account added", "success");
@@ -539,6 +548,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       conf.saveConfig(currentConfig);
+      ipcRenderer.send("config-changed");
       renderAccountsList();
       document.getElementById("del-account-modal").hidePopover();
       showNotification(getTranslation(currentLang, "account-removed-msg") || "Account removed", "success");
@@ -592,6 +602,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ipcRenderer.invoke("create_instance_folder", path.join(conf.CONFIG_DIR, "instances", name));
 
     conf.saveConfig(currentConfig);
+    ipcRenderer.send("config-changed");
     renderBuildsList();
     showNotification(getTranslation(currentLang, "instance-added-msg"), "success");
   });
@@ -600,6 +611,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("modal-del-build-btn").addEventListener("click", () => {
     deleteBuild(deletingIndex, deletingName);
     document.getElementById("del-build-modal").hidePopover();
+    ipcRenderer.send("config-changed");
   });
 
   // Обработка кнопки перезагрузки в модальном окне
@@ -641,6 +653,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       currentConfig.instances.splice(index, 1);
       ipcRenderer.invoke("remove_instance_folder", path.join(conf.CONFIG_DIR, "instances", name));
       conf.saveConfig(currentConfig);
+      ipcRenderer.send("config-changed");
       renderBuildsList();
       showNotification(getTranslation(currentLang, "instance-removed-msg"), "success");
     }
@@ -849,7 +862,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.getElementById("close-btn").addEventListener("click", () => {
-    if (isMinecraftRunning) {
+    if (isMinecraftRunning && !config.minimizeToTrayOnClose) {
       showNotification(getTranslation(currentLang, "minecraft-starting-msg"), "error");
       return;
     }
@@ -900,9 +913,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     config.accent = document.querySelector("#accent-color-selector *[selected]").style.backgroundColor;
     config.wallpaper = document.getElementById("wallpaper-select").value;
     config.discordRPC = document.getElementById("rpc-enabled").checked;
+    config.minimizeToTrayOnGameStart = document.getElementById("minimize-to-tray-on-game-start").checked;
+    config.minimizeToTrayOnClose = document.getElementById("minimize-to-tray-on-close").checked;
+    config.checkUpdates = document.getElementById("check-updates").checked;
     config.javaPath = document.getElementById("java-path").value;
     config.allocatedRam = parseInt(document.getElementById("ram-alloc").value) || 2;
     conf.saveConfig(config);
+    ipcRenderer.send("config-changed");
     reloadSettings();
   }
 
@@ -911,6 +928,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("wallpaper-select").addEventListener("change", saveConfigSettings);
   document.getElementById("java-path").addEventListener("change", saveConfigSettings);
   document.getElementById("ram-alloc").addEventListener("change", saveConfigSettings);
+  document.getElementById("minimize-to-tray-on-game-start").addEventListener("change", saveConfigSettings);
+  document.getElementById("minimize-to-tray-on-close").addEventListener("change", saveConfigSettings);
+  document.getElementById("check-updates").addEventListener("change", saveConfigSettings);
 
   // Обработка переключения Discord RPC
   document.getElementById("rpc-enabled").addEventListener("change", () => {

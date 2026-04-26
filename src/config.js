@@ -48,6 +48,9 @@ const DEFAULT_CONFIG = {
   wallpaper: null,
   theme: "dark",
   discordRPC: false,
+  minimizeToTrayOnClose: false,
+  minimizeToTrayOnGameStart: false,
+  checkUpdates: true,
   javaPath: "",
   allocatedRam: 2,
   instances: [

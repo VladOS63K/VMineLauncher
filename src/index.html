@@ -16,13 +16,13 @@
   </head>
   <body>
     <div class="tooltip">ToolTip</div>
+    <div id="notification-container"></div>
+
     <div class="loading-container">
       <img src="icon.png" width="128" height="128">
     </div>
+
     <div class="app-container" style="display: none;">
-
-      <div id="notification-container"></div>
-
       <!-- Модальное окно - добавление аккаунта -->
       <div id="add-account-modal" class="modal" popover>
         <div class="modal-content">
@@ -393,6 +393,33 @@
                   data-transid="enable-discord-rpc">Включить Discord RPC</label>
                 <label class="switch">
                   <input type="checkbox" id="rpc-enabled" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <label for="check-updates"
+                  data-transid="check-updates">Проверять обновления при запуске</label>
+                <label class="switch">
+                  <input type="checkbox" id="check-updates" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <label for="minimize-to-tray-on-game-start"
+                  data-transid="minimize-to-tray-on-game-start">Сворачивать в трей при запуске игры</label>
+                <label class="switch">
+                  <input type="checkbox" id="minimize-to-tray-on-game-start" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <label for="minimize-to-tray-on-close"
+                  data-transid="minimize-to-tray-on-close">Сворачивать в трей при закрытии окна лаунчера</label>
+                <label class="switch">
+                  <input type="checkbox" id="minimize-to-tray-on-close" />
                   <span class="slider round"></span>
                 </label>
               </div>

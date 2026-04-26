@@ -1,6 +1,6 @@
 "use strict";
 
-const { app, BrowserWindow, ipcMain, nativeTheme, Notification } = require("electron");
+const { app, BrowserWindow, ipcMain, nativeTheme, Notification, Menu, MenuItem, Tray } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -25,6 +25,7 @@ if (process.platform !== "linux") {
   process.exit(1);
 }
 
+let config = loadConfig();
 var log = "";
 var currentLang = "en";
 
@@ -57,17 +58,22 @@ launcher.on('arguments', (e) => {
   logMsg("Starting Minecraft");
   setRPC(getTranslation(currentLang, "rpc-active"), runningInstanceName);
   mainWindow.webContents.send("starting-minecraft");
+  if (config.minimizeToTrayOnGameStart) mainWindow.hide();
 });
 launcher.on('close', (e) => {
   runningInstanceName = "";
   logMsg("Minecraft process exited with code " + e + "!");
   setRPC(getTranslation(currentLang, "rpc-unactive"), getTranslation(currentLang, "rpc-unactive"));
+  mainWindow.show();
   mainWindow.webContents.send("minecraft-close", { code: e, log: log });
   fs.writeFileSync(path.join(CONFIG_DIR, "latest.log"), log, { encoding: "utf-8" });
   log = "";
 });
 
 let mainWindow;
+let loadingWindow;
+
+let tray;
 
 var availableVersions = [];
 
@@ -75,6 +81,10 @@ var loadTranslationsAttempts = 0;
 var loadVersionsAttempts = 0;
 
 async function retryLoadTranslations() {
+  if (loadingWindow) {
+    loadingWindow.show();
+    loadingWindow.webContents.send("status", `Loading translations${(loadTranslationsAttempts > 0 ? ", attempt " + loadTranslationsAttempts : "")}...`);
+  }
   try {
     await loadTranslations();
   }
@@ -90,6 +100,10 @@ async function retryLoadTranslations() {
 
 async function retryLoadVersions() {
   return new Promise(async (resolve, reject) => {
+    if (loadingWindow) {
+      loadingWindow.show();
+      loadingWindow.webContents.send("status", `Loading versions${(loadVersionsAttempts > 0 ? ", attempt " + loadVersionsAttempts : "")}...`);
+    }
     try {
       const r = await fetch("https://piston-meta.mojang.com/mc/game/version_manifest.json"); // fetch("https://mc-versions-api.net/api/java?detailed=true&order=desc");
       if (r.ok) {
@@ -141,6 +155,31 @@ async function tryDownloadAuthlibInjector() {
 }
 
 async function createWindow() {
+  console.log("Creating Electron loading window...");
+  // Обработка окна загрузки
+  loadingWindow = new BrowserWindow({
+    width: 450,
+    height: 400,
+    frame: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      enableRemoteModule: true,
+    },
+    modal: true,
+    maximizable: false,
+    resizable: false,
+    show: false,
+  });
+
+  loadingWindow.loadFile("src/loading.html");
+
+  loadingWindow.webContents.once("dom-ready", () => {
+    loadingWindow.show();
+    loadingWindow.webContents.send("status", "Loading translations...");
+  });
+
+  console.log("Loading translations...");
   try {
     await retryLoadTranslations();
   }
@@ -148,11 +187,15 @@ async function createWindow() {
     console.error(e);
     process.exit("Languages loading failed");
   }
+
+  console.log("Creating Electron main window...");
   mainWindow = new BrowserWindow({
     width: 1000,
     height: 650,
+    minWidth: 1000,
+    minHeight: 650,
     frame: false,
-    transparent: true,
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -179,6 +222,10 @@ async function createWindow() {
   });
 
   ipcMain.on("close-window", () => {
+    if (config.minimizeToTrayOnClose) {
+      mainWindow.hide();
+      return;
+    }
     mainWindow.close();
   });
 
@@ -196,10 +243,10 @@ async function createWindow() {
       mainWindow.webContents.send("avatar_url", rpcClient.getAvatarUrl(discordUser.id, discordUser.avatar));
       mainWindow.webContents.send("discordUser", discordUser);
     }
+    mainWindow.show();
   });
 
   // Подключение Discord RPC
-  const config = loadConfig();
   currentLang = config.lang;
   if (config.discordRPC == true) {
     rpc = await import("@nich87/discord-rpc");
@@ -234,6 +281,26 @@ async function createWindow() {
       console.error("Failed to download authlib injector:", e);
     }
   }
+
+  tray = new Tray('src/icon96.png');
+  const contextMenu = Menu.buildFromTemplate([
+    new MenuItem({ label: "VMineLauncher", type: "normal", enabled: false, icon: "src/icon96.png" }),
+    new MenuItem({ type: "separator" }),
+    new MenuItem({
+      label: getTranslation(currentLang, "show-hide"), type: "normal", click: () => {
+        if (mainWindow) {
+          if (!mainWindow.isVisible()) {
+            mainWindow.show();
+          } else {
+            mainWindow.hide();
+          }
+        }
+      }
+    }),
+    new MenuItem({ label: getTranslation(currentLang, "exit"), type: "normal", click: () => { app.quit(); } })
+  ]);
+  tray.setToolTip('VMineLauncher');
+  tray.setContextMenu(contextMenu);
 }
 
 async function setRPC(details, state) {
@@ -242,7 +309,7 @@ async function setRPC(details, state) {
     if (config.discordRPC == true) {
       const activity = new rpc.PresenceBuilder()
         .setType(rpc.ActivityType.Playing)
-        .setDetails(details)
+        .setDetails((!app.isPackaged ? "[Debug] " : "") + details)
         .setState(state)
         .setStartTimestamp(Date.now())
         .setLargeImage('game_icon', 'vminelauncher_icon')
@@ -315,12 +382,17 @@ ipcMain.handle("available_versions", (event) => {
   return new Promise(async (resolve, reject) => {
     try {
       await retryLoadVersions();
+      loadingWindow.close();
       resolve(availableVersions);
     }
     catch (e) {
       process.exit(e);
     }
   });
+});
+
+ipcMain.on("config-changed", (event) => {
+  config = loadConfig();
 });
 
 // Авторизация через Ely.by
@@ -394,7 +466,7 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
       }
 
       // Запуск Minecraft
-      console.log(`Запуск Minecraft ${version}`);
+      console.log(`Starting Minecraft ${version}`);
       new Promise(async (resolve, reject) => {
         const activity = new rpc.PresenceBuilder()
           .setType(rpc.ActivityType.Playing)
@@ -439,8 +511,10 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
       resolve();
     } catch (error) {
       runningInstanceName = "";
-      console.error("Ошибка при запуске Minecraft:", error);
+      console.error("Error:", error);
       reject(`Ошибка при запуске Minecraft: ${error.message}`);
     }
   });
 });
+
+console.log("[VMineLauncher] Started!");

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
+        <title>VMineLauncher Loading Window</title>
+        <link rel='stylesheet' href='styles.css'>
+        <style>
+            @keyframes heartbeat {
+                0% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+
+                50% {
+                    transform: scale(1.2);
+                    opacity: 0.8;
+                }
+
+                100% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .loading-container, body {
+                background-color: #121212 !important;
+                color: #ffffff !important;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                gap: 25px;
+            }
+
+            .loading-container img {
+                animation: heartbeat 4s ease-in-out 0s infinite;
+            }
+        </style>
+        
+    </head>
+    <body>
+        <div class="loading-container">
+            <img src="icon.png" width="128" height="128">
+            <div id="loading-status"
+                style="color: #ffffff; text-align: center;">Starting...</div>
+        </div>
+
+        <script>
+            const { ipcRenderer } = require('electron');
+
+            ipcRenderer.on('status', (event, status) => {
+                const statusElement = document.getElementById('loading-status');
+                if (statusElement) {
+                    statusElement.textContent = status;
+                }
+            });
+        </script>
+    </body>
+</html>
