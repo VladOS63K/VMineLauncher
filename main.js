@@ -1,6 +1,6 @@
 "use strict";
 
-const { app, BrowserWindow, ipcMain, nativeTheme, Notification, Menu, MenuItem, Tray } = require("electron");
+const { app, BrowserWindow, ipcMain, nativeTheme, Notification, Menu, MenuItem, Tray, nativeImage } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -282,9 +282,9 @@ async function createWindow() {
     }
   }
 
-  tray = new Tray('src/icon96.png');
+  tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'src/icon96.png'))); // Загрузка иконки из файла
   const contextMenu = Menu.buildFromTemplate([
-    new MenuItem({ label: "VMineLauncher", type: "normal", enabled: false, icon: "src/icon96.png" }),
+    new MenuItem({ label: "VMineLauncher", type: "normal", enabled: false, icon: nativeImage.createFromPath(path.join(__dirname, 'src/icon96.png')) }),
     new MenuItem({ type: "separator" }),
     new MenuItem({
       label: getTranslation(currentLang, "show-hide"), type: "normal", click: () => {

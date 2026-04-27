@@ -493,6 +493,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (type === "offline") {
       const name = document.getElementById("new-account-nickname").value;
       if (!name) return;
+      if (name.length > 16 || name.length < 3) {
+        showNotification(getTranslation(currentLang, "nickname-incorrect"), "error");
+        return;
+      }
       newAccount = {
         name: name,
         uuid: crypto.randomUUID(), // Простой UUID для оффлайн аккаунта

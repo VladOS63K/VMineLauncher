@@ -387,9 +387,13 @@ body {
   flex-direction: column;
   justify-content: end;
   gap: 10px;
-  z-index: 2000;
-  overflow: visible;
+  background: transparent;
+  z-index: 2147483647;
+  overflow: hidden;
   pointer-events: none;
+  mask-image: linear-gradient(to top,
+      rgba(0, 0, 0, 1) 90%,
+      rgba(0, 0, 0, 0) 100%);
 }
 
 .notification {
@@ -405,7 +409,7 @@ body {
   align-items: center;
   gap: 10px;
   animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .notification.success i {
@@ -711,7 +715,6 @@ select {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: background 0.2s ease;
 }
 
 .button[disabled] {
