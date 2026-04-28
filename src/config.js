@@ -76,6 +76,10 @@ if (!fs.existsSync(path.join(CONFIG_DIR, "wallpapers"))) {
   fs.mkdirSync(path.join(CONFIG_DIR, "wallpapers"), { recursive: true });
 }
 
+if (!fs.existsSync(path.join(CONFIG_DIR, "skins"))) {
+  fs.mkdirSync(path.join(CONFIG_DIR, "skins"), { recursive: true });
+}
+
 // Поиск пути к Java
 function findJavaPath() {
   const platform = os.platform();

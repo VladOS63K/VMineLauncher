@@ -4,15 +4,19 @@ const { app, BrowserWindow, ipcMain, nativeTheme, Notification, Menu, MenuItem, 
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const { randomUUID } = require("crypto");
 const { openFileManager } = require("open-file-manager");
 const dayjs = require("dayjs");
 const mclc = require("minecraft-launcher-core");
 const { CONFIG_DIR, loadConfig, saveConfig } = require("./src/config.js");
 const { loadTranslations, getTranslation } = require("./src/lang.js");
+const { FakeAuth } = require("./src/fakeauth.js");
 
 var rpc;
 var rpcClient;
 var launcher = new mclc.Client();
+
+var fakeAuth;
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
@@ -61,6 +65,9 @@ launcher.on('arguments', (e) => {
   if (config.minimizeToTrayOnGameStart) mainWindow.hide();
 });
 launcher.on('close', (e) => {
+  if (fakeAuth) {
+    fakeAuth.stop();
+  }
   runningInstanceName = "";
   logMsg("Minecraft process exited with code " + e + "!");
   setRPC(getTranslation(currentLang, "rpc-unactive"), getTranslation(currentLang, "rpc-unactive"));
@@ -453,10 +460,15 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
       var auth;
 
       if (config.accounts[config.activeAccountIndex].type == "offline") {
-        auth = mclc.Authenticator.getAuth(config.accounts[config.activeAccountIndex].name);
+        auth = auth = {
+          access_token: "FakeAuthToken",
+          client_id: config.clientToken,
+          uuid: config.accounts[config.activeAccountIndex].uuid,
+          name: config.accounts[config.activeAccountIndex].name,
+          user_properties: "{}"
+        };
       } else if (config.accounts[config.activeAccountIndex].type == "elyby") {
         auth = {
-          // Тут ты либо вводишь логин/пароль, либо юзаешь существующий токен
           access_token: config.accounts[config.activeAccountIndex].accessToken,
           client_id: config.clientToken,
           uuid: config.accounts[config.activeAccountIndex].uuid,
@@ -467,25 +479,17 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
 
       // Запуск Minecraft
       console.log(`Starting Minecraft ${version}`);
-      new Promise(async (resolve, reject) => {
-        const activity = new rpc.PresenceBuilder()
-          .setType(rpc.ActivityType.Playing)
-          .setDetails(getTranslation(currentLang, "rpc-starting"))
-          .setState(`"${instanceName}"`)
-          .setStartTimestamp(Date.now())
-          .setLargeImage('game_icon', 'vminelauncher_icon')
-          .build();
-
-        await rpcClient.setActivity(activity);
-      }).then(() => {
-        console.log("Changed RPC state to Starting");
-      });
+      setRPC(getTranslation(currentLang, "rpc-starting"), `"${instanceName}"`);
       ipcMain.emit("startingGame");
+      let customArgs = [];
+      customArgs.push("-Dauthlibwrapper.bootstrap=true");
+      if (config.accounts[config.activeAccountIndex].type == "elyby") {
+        customArgs.push(`-javaagent:${path.join(CONFIG_DIR, "authlib-injector.jar")}=ely.by`);
+      }
+      if (config.accounts[config.activeAccountIndex].type == "offline") {
+        customArgs.push(`-javaagent:${path.join(CONFIG_DIR, "authlib-injector.jar")}=http://127.0.0.1:8080`);
+      }
       let opts = {
-        // For production launchers, I recommend not passing 
-        // the getAuth function through the authorization field and instead
-        // handling authentication outside before you initialize
-        // MCLC so you can handle auth based errors and validation!
         authorization: auth,
         root: path.join(CONFIG_DIR, "instances", instanceName),
         cache: path.join(CONFIG_DIR, ".cache"),
@@ -498,15 +502,10 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
           min: "512M"
         },
         javaPath: config.javaPath,
-        customArgs: (config.accounts[config.activeAccountIndex].type == "elyby") ? [
-          "-Dauthlibwrapper.bootstrap=true",
-          `-javaagent:${path.join(CONFIG_DIR, "authlib-injector.jar")}=ely.by`,
-          // "-Dminecraft.api.auth.host=https://authserver.ely.by",
-          // "-Dminecraft.api.account.host=https://api.ely.by",
-          // "-Dminecraft.api.session.host=https://session.ely.by",
-          // "-Dminecraft.api.services.host=https://api.ely.by"
-        ] : null
+        customArgs: customArgs
       }
+      fakeAuth = new FakeAuth(8080, config.accounts[config.activeAccountIndex].name, config.accounts[config.activeAccountIndex].uuid);
+      fakeAuth.start();
       launcher.launch(opts);
       resolve();
     } catch (error) {

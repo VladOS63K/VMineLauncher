@@ -247,6 +247,12 @@
             </div>
             <span data-transid="nav-logs">Логи</span>
           </button>
+          <button class="nav-btn" data-section="accounts">
+            <div class="icon">
+              <i class="fa-solid fa-user-gear"></i>
+            </div>
+            <span data-transid="nav-accounts">Аккаунты</span>
+          </button>
           <button class="nav-btn" data-section="settings">
             <div class="icon">
               <i class="fas fa-cog"></i>
@@ -339,11 +345,25 @@
           </div>
         </div>
 
+        <div class="content-section" id="accounts-section">
+          <h1 data-transid="manage-accounts">Управление аккаунтами</h1>
+          <div class="accounts-container">
+            <button id="add-account-btn" class="button">
+              <i class="fas fa-user-plus"></i> <span
+                data-transid="add-account">Доб. аккаунт</span>
+            </button>
+
+            <div id="accounts-list" class="accounts-list">
+              <!-- Аккаунты будут загружаться динамически -->
+            </div>
+          </div>
+        </div>
+
         <div class="content-section" id="settings-section">
           <h1 data-transid="nav-settings">Настройки</h1>
           <div class="settings-container">
             <div class="setting-group">
-              <div class="title">Оформление</div>
+              <div class="title" data-transid="appearance">Оформление</div>
 
               <div class="setting-item">
                 <label for="lang-select">Язык (Language)</label>
@@ -399,7 +419,8 @@
 
               <div class="setting-item">
                 <label for="check-updates"
-                  data-transid="check-updates">Проверять обновления при запуске</label>
+                  data-transid="check-updates">Проверять обновления при
+                  запуске</label>
                 <label class="switch">
                   <input type="checkbox" id="check-updates" />
                   <span class="slider round"></span>
@@ -408,7 +429,8 @@
 
               <div class="setting-item">
                 <label for="minimize-to-tray-on-game-start"
-                  data-transid="minimize-to-tray-on-game-start">Сворачивать в трей при запуске игры</label>
+                  data-transid="minimize-to-tray-on-game-start">Сворачивать в
+                  трей при запуске игры</label>
                 <label class="switch">
                   <input type="checkbox" id="minimize-to-tray-on-game-start" />
                   <span class="slider round"></span>
@@ -417,7 +439,8 @@
 
               <div class="setting-item">
                 <label for="minimize-to-tray-on-close"
-                  data-transid="minimize-to-tray-on-close">Сворачивать в трей при закрытии окна лаунчера</label>
+                  data-transid="minimize-to-tray-on-close">Сворачивать в трей
+                  при закрытии окна лаунчера</label>
                 <label class="switch">
                   <input type="checkbox" id="minimize-to-tray-on-close" />
                   <span class="slider round"></span>
@@ -426,7 +449,7 @@
             </div>
 
             <div class="setting-group">
-              <div class="title">Игра</div>
+              <div class="title" data-transid="game">Игра</div>
 
               <div class="setting-item">
                 <label for="java-path" data-transid="java-path">Путь к
@@ -440,22 +463,6 @@
                   (ГБ)</label>
                 <input type="number" id="ram-alloc" min="1" max="16"
                   value="2" />
-              </div>
-            </div>
-
-            <div class="setting-group">
-              <div class="title">Аккаунты</div>
-
-              <div class="setting-item">
-                <p data-transid="manage-accounts">Управление аккаунтами</p>
-                <button id="add-account-btn" class="button">
-                  <i class="fas fa-user-plus"></i> <span
-                    data-transid="add-account">Доб. аккаунт</span>
-                </button>
-              </div>
-
-              <div id="accounts-list" class="accounts-list">
-                <!-- Аккаунты будут загружаться динамически -->
               </div>
             </div>
           </div>

@@ -44,25 +44,26 @@ function format(str, ...values) {
   });
 }
 
-async function getFaceFromEly(username) {
-  const skinUrl = `https://skinsystem.ely.by/skins/${username}.png`;
+async function getFaceURL(blob) {
+  const img = new Image();
+  img.src = URL.createObjectURL(blob);
+  await new Promise(res => img.onload = res);
+  const canvas = document.createElement('canvas');
+  canvas.width = 8;
+  canvas.height = 8;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 8, 8, 8, 8, 0, 0, 8, 8);
+  const faceDataUrl = canvas.toDataURL('image/png');
+  return faceDataUrl;
+}
 
+async function getFaceURLFromEly(username) {
+  const skinUrl = `https://skinsystem.ely.by/skins/${username}.png`;
   try {
     const response = await fetch(skinUrl);
     if (!response.ok) throw new Error('Skin not found');
     const blob = await response.blob();
-    const img = new Image();
-    img.src = URL.createObjectURL(blob);
-
-    await new Promise(res => img.onload = res);
-    const canvas = document.createElement('canvas');
-    canvas.width = 8;
-    canvas.height = 8;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 8, 8, 8, 8, 0, 0, 8, 8);
-    const faceDataUrl = canvas.toDataURL('image/png');
-    return faceDataUrl;
-
+    return await getFaceURL(blob);
   } catch (err) {
     showNotification(err, "error");
     return null;
@@ -135,6 +136,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   })();
 
+  document.getElementById("version").innerHTML = `<span data-transid="version">Версия: </span>${pjson.version}`;
+
   // Загрузка конфигурации
   var config;
   let isConfigLoading = false;
@@ -202,11 +205,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     const activeIndex = currentConfig.activeAccountIndex;
 
     accounts.forEach(async (account, index) => {
+      var face;
+
+      if (account.type === "elyby") {
+        face = await getFaceURLFromEly(account.name);
+      }
+      else if (account.type === "offline") {
+        if (fs.existsSync(path.join(conf.CONFIG_DIR, "skins", `${account.name}.png`))) {
+          var blob = new Blob([fs.readFileSync(path.join(conf.CONFIG_DIR, "skins", `${account.name}.png`))], { type: 'image/png' });
+          face = await getFaceURL(blob);
+        }
+        else {
+          var blob = new Blob([fs.readFileSync(path.join(__dirname, "steve.png"))], { type: 'image/png' });
+          face = await getFaceURL(blob);
+        }
+      }
       const accountItem = document.createElement("div");
       accountItem.className = `account-item ${index === activeIndex ? 'active' : ''}`;
       accountItem.innerHTML = `
         <div class="account-info">
-          <img src="${account.type === "elyby" ? await getFaceFromEly(account.name) : `https://minotar.net/avatar/${account.name}/32`}" width="32" height="32" class="account-avatar pixelated">
+          <img src="${face}" width="32" height="32" class="account-avatar pixelated">
           ${(index === activeIndex) ? `<i class="fa-solid fa-check"></i>` : ""}
           <div class="account-details">
             <div class="account-name">${account.name}</div>
@@ -273,15 +291,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Обновляем отображение активного пользователя в сайдбаре
     if (activeIndex !== -1 && accounts[activeIndex]) {
       const activeAccount = accounts[activeIndex];
-      document.querySelector(".user span").innerText = activeAccount.name;
+
+      var face;
+
       if (activeAccount.type === "elyby") {
-        getFaceFromEly(activeAccount.name).then((url) => {
-          document.querySelector(".user img").src = url;
-        });
+        face = await getFaceURLFromEly(activeAccount.name);
       }
-      else {
-        document.querySelector(".user img").src = `https://minotar.net/avatar/${activeAccount.name}/32`;
+      else if (activeAccount.type === "offline") {
+        if (fs.existsSync(path.join(conf.CONFIG_DIR, "skins", `${activeAccount.name}.png`))) {
+          var blob = new Blob([fs.readFileSync(path.join(conf.CONFIG_DIR, "skins", `${activeAccount.name}.png`))], { type: 'image/png' });
+          face = await getFaceURL(blob);
+        }
+        else {
+          var blob = new Blob([fs.readFileSync(path.join(__dirname, "steve.png"))], { type: 'image/png' });
+          face = await getFaceURL(blob);
+        }
       }
+      document.querySelector(".user span").innerText = activeAccount.name;
+      document.querySelector(".user img").src = face;
     } else {
       document.querySelector(".user span").innerText = "Guest";
       document.querySelector(".user img").src = "https://ui-avatars.com/api/?background=6a5acd&color=fff&name=Guest";
@@ -456,7 +483,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (e) {
     showNotification(e, "error");
   }
-  document.getElementById("version").innerHTML = `<span data-transid="version">Версия: </span>${pjson.version}`;
 
   setInterval(() => {
     document.getElementById("ram-alloc").closest(".setting-item").dataset.tooltip = `${getTranslation(currentLang, "free-mem-now")} ${Math.floor(freemem() / 1024 / 1024 / 1024)} ${getTranslation(currentLang, "gigabytes")}`;
@@ -476,7 +502,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (type === "offline") {
       document.getElementById("offline-auth-fields").style.display = "block";
       document.getElementById("elyby-auth-fields").style.display = "none";
-    } else {
+    } else if (type === "elyby") {
       document.getElementById("offline-auth-fields").style.display = "none";
       document.getElementById("elyby-auth-fields").style.display = "block";
     }

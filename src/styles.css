@@ -748,6 +748,16 @@ select {
   background-color: var(--primary-color);
 }
 
+/* Секция аккаунтов */
+.accounts-container {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  gap: 20px;
+  margin-top: 20px;
+  padding-right: 5px;
+}
+
 /* Секция настроек */
 .settings-container {
   display: flex;
