@@ -29,7 +29,7 @@ class FakeAuth {
     server;
 
     getUserInfo() {
-        const privateKey = fs.readFileSync('src/skinsigns/private.pem', 'utf8').trim();
+        const privateKey = fs.readFileSync(path.join(__dirname, 'skinsigns/private.pem'), 'utf8').trim();
         const textureData = {
             timestamp: Date.now(),
             profileId: this.uuid,
@@ -148,7 +148,7 @@ class FakeAuth {
                 }
                 else if (req.method === 'GET' && (url === '/' || url === '')) {
                     console.log(`[FakeAuth ${this.fakeauthUUID}] Metadata requested, providing FakeAuth server information...`);
-                    const sign = fs.readFileSync('src/skinsigns/public.pem', 'utf8').trim();
+                    const sign = fs.readFileSync(path.join(__dirname, 'skinsigns/public.pem'), 'utf8').trim();
                     res.writeHead(200, {"Content-Type": "application/json"});
                     res.end(JSON.stringify({
                         meta: {
