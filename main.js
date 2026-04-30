@@ -192,7 +192,19 @@ async function createWindow() {
   }
   catch (e) {
     console.error(e);
-    process.exit("Languages loading failed");
+    process.exit(e);
+    return;
+  }
+
+  console.log("Loading versions...");
+  try {
+    await retryLoadVersions();
+    loadingWindow.close();
+  }
+  catch (e) {
+    console.log(e);
+    process.exit(e);
+    return;
   }
 
   console.log("Creating Electron main window...");
@@ -386,16 +398,7 @@ ipcMain.on("show_notify", (e, params) => {
 })
 
 ipcMain.handle("available_versions", (event) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      await retryLoadVersions();
-      loadingWindow.close();
-      resolve(availableVersions);
-    }
-    catch (e) {
-      process.exit(e);
-    }
-  });
+  return new Promise(resolve => resolve(availableVersions));
 });
 
 ipcMain.on("config-changed", (event) => {
@@ -488,6 +491,11 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
       }
       if (config.accounts[config.activeAccountIndex].type == "offline") {
         customArgs.push(`-javaagent:${path.join(CONFIG_DIR, "authlib-injector.jar")}=http://127.0.0.1:8080`);
+        customArgs.push("-Dminecraft.api.auth.host=http://127.0.0.1:8080");
+        customArgs.push("-Dminecraft.api.services.host=http://127.0.0.1:8080");
+        customArgs.push("-Dminecraft.api.session.host=http://127.0.0.1:8080");
+        customArgs.push("-Dminecraft.api.account.host=http://127.0.0.1:8080");
+        customArgs.push("-Dminecraft.api.profiles.host=http://127.0.0.1:8080");
       }
       let opts = {
         authorization: auth,

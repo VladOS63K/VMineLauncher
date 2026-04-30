@@ -1,10 +1,12 @@
 const { createServer } = require('http');
-const { randomUUID } = require("crypto");
+const crypto = require("crypto");
+const path = require("path");
+const fs = require("fs");
 const conf = require("./config.js");
 const pjson = require('../package.json');
 
 class FakeAuth {
-    constructor(port = 8080, playerName = "Player", uuid) {
+    constructor(port = 8080, playerName = "Player", uuid = "deadbeefdeadbeefdeadbeefdeadbeef") {
         if (typeof port !== 'number' || port <= 0 || port > 65535) {
             throw new Error("Invalid port number. Must be between 1 and 65535.");
         }
@@ -20,11 +22,45 @@ class FakeAuth {
         this.port = port;
         this.playerName = playerName;
         this.uuid = uuid;
-        this.fakeauthUUID = randomUUID();
+        this.fakeauthUUID = crypto.randomUUID();
     }
 
     fakeauthUUID;
     server;
+
+    getUserInfo() {
+        const privateKey = fs.readFileSync('./src/skinsigns/private.pem', 'utf8').trim();
+        const textureData = {
+            timestamp: Date.now(),
+            profileId: this.uuid,
+            profileName: this.playerName,
+            textures: {
+                SKIN: {
+                    url: `http://127.0.0.1:8080/skins/${this.playerName}.png?v=${Date.now()}`
+                }
+            }
+        };
+
+        const base64Textures = Buffer.from(JSON.stringify(textureData)).toString('base64');
+
+        const sign = crypto.createSign('RSA-SHA1');
+        sign.update(base64Textures);
+        sign.end();
+        const signature = sign.sign(privateKey, 'base64');
+
+        return JSON.stringify({
+            id: this.uuid,
+            name: this.playerName,
+            timestamp: Date.now(),
+            properties: [
+                {
+                    name: "textures",
+                    value: base64Textures,
+                    signature: signature
+                }
+            ]
+        });
+    }
 
     start() {
         if (this.server) {
@@ -40,9 +76,10 @@ class FakeAuth {
                 if (url.includes('/authenticate')) {
                     const data = JSON.parse(body || '{}');
                     const name = data.username || this.playerName;
-                    const uuid = this.uuid || "deadbeefdeadbeefdeadbeefdeadbeef";
+                    const uuid = this.uuid;
 
                     console.log(`[FakeAuth ${this.fakeauthUUID}] Allowing ${name}...`);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({
                         accessToken: "FakeAuthToken",
                         clientToken: data.clientToken || "client",
@@ -50,22 +87,13 @@ class FakeAuth {
                         availableProfiles: [{ id: uuid, name: name }]
                     }));
                 }
-                else if (url.includes('/join')) {
+                else if (url.includes('/session/minecraft/join')) {
                     console.log(`[FakeAuth ${this.fakeauthUUID}] Allowing player to join the server...`);
                     res.writeHead(204);
                     res.end();
                 }
-                else if (url.includes('/profile/')) {
-                    const uuid = url.split('/').pop();
-                    console.log(`[FakeAuth ${this.fakeauthUUID}] Allowing access to profile for UUID: ${uuid}`);
-                    res.end(JSON.stringify({
-                        id: this.uuid,
-                        name: this.playerName,
-                        properties: []
-                    }));
-                }
                 else if (url.startsWith('/skins/')) {
-                    const skinName = url.split('/').pop();
+                    const skinName = url.split('/').pop().split('?').shift();
                     const skinPath = path.join(conf.CONFIG_DIR, 'skins', skinName);
 
                     if (fs.existsSync(skinPath)) {
@@ -77,11 +105,51 @@ class FakeAuth {
                         res.writeHead(200, { 'Content-Type': 'image/png' });
                         res.end(fs.readFileSync(path.join(__dirname, 'steve.png')));
                     }
-                    return;
+                }
+                else if (url.includes('/api/profiles/minecraft')) {
+                    console.log(`[FakeAuth ${this.fakeauthUUID}] UUID Search requested, providing fake profile...`);
+                    const name = this.playerName;
+                    const uuid = this.uuid;
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify([{ id: uuid, name: name }]));
+                }
+                else if (url.includes('/sessionserver/session/minecraft/profile/')) {
+
+                    console.log(`[FakeAuth ${this.fakeauthUUID}] Session profile requested for UUID: ${this.uuid}, providing fake profile with skin...`);
+
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(this.getUserInfo());
+                }
+                else if (url.includes('/profile/')) {
+                    const uuid = url.split('/').pop().split('?').shift();
+                    console.log(`[FakeAuth ${this.fakeauthUUID}] Allowing access to profile for UUID: ${uuid}`);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(this.getUserInfo());
+                }
+                else if (url.includes('/session/minecraft/hasJoined')) {
+                    console.log(`[FakeAuth ${this.fakeauthUUID}] HasJoined requested, allowing player to join...`);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(this.getUserInfo());
+                }
+                else if (url.includes('/player/attributes') || url.includes('/privileges')) {
+                    console.log(`[FakeAuth ${this.fakeauthUUID}] Privileges requested, providing fake privileges...`);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        privileges: {
+                            onlineChat: { enabled: true },
+                            multiplayerServer: { enabled: true },
+                            multiplayerRealms: { enabled: false },
+                            telemetry: { enabled: false }
+                        },
+                        profanityFilterPreferences: { profanityFilterEnabled: false }
+                    }));
                 }
                 else if (req.method === 'GET' && (url === '/' || url === '')) {
                     console.log(`[FakeAuth ${this.fakeauthUUID}] Metadata requested, providing FakeAuth server information...`);
-                    res.writeHead(200);
+                    const sign = fs.readFileSync('./src/skinsigns/public.pem', 'utf8').trim();
+                    res.writeHead(200, {"Content-Type": "application/json"});
                     res.end(JSON.stringify({
                         meta: {
                             serverName: "VMineLauncher Offline Auth",
@@ -92,11 +160,14 @@ class FakeAuth {
                                 register: "https://vlados63k.xyz",
                             }
                         },
-                        skinDomains: []
+                        skinDomains: ["127.0.0.1"],
+                        signaturePublicKeys: [
+                            sign
+                        ]
                     }));
                 }
                 else {
-                    res.writeHead(200);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ status: "OK", message: "Nothing" }));
                 }
             });
