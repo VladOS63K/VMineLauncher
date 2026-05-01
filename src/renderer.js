@@ -412,7 +412,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("rpc-enabled").checked = config.discordRPC;
     document.getElementById("minimize-to-tray-on-game-start").checked = config.minimizeToTrayOnGameStart;
     document.getElementById("minimize-to-tray-on-close").checked = config.minimizeToTrayOnClose;
+    document.getElementById("system-window").checked = config.systemWindow;
     document.getElementById("check-updates").checked = config.checkUpdates;
+
+    if (config.systemWindow) {
+      document.querySelector(".window-controls").style.display = "none";
+      document.documentElement.classList.add("system-window");
+    }
 
     if (config.javaPath) {
       document.getElementById("java-path").value = config.javaPath;
@@ -945,6 +951,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     config.discordRPC = document.getElementById("rpc-enabled").checked;
     config.minimizeToTrayOnGameStart = document.getElementById("minimize-to-tray-on-game-start").checked;
     config.minimizeToTrayOnClose = document.getElementById("minimize-to-tray-on-close").checked;
+    config.systemWindow = document.getElementById("system-window").checked;
     config.checkUpdates = document.getElementById("check-updates").checked;
     config.javaPath = document.getElementById("java-path").value;
     config.allocatedRam = parseInt(document.getElementById("ram-alloc").value) || 2;
@@ -964,6 +971,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Обработка переключения Discord RPC
   document.getElementById("rpc-enabled").addEventListener("change", () => {
+    saveConfigSettings();
+    document.getElementById("restart-modal").showPopover();
+  });
+
+  // Обработка переключения системного рамки окна
+  document.getElementById("system-window").addEventListener("change", () => {
     saveConfigSettings();
     document.getElementById("restart-modal").showPopover();
   });

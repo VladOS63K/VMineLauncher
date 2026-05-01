@@ -74,6 +74,10 @@ img {
   background-color: var(--primary-color);
 }
 
+html.system-window {
+  border-radius: 5px;
+}
+
 body {
   backdrop-filter: blur(5px);
   background-color: var(--bg-color);

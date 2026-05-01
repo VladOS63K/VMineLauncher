@@ -168,6 +168,8 @@ async function createWindow() {
     width: 450,
     height: 400,
     frame: false,
+    show: false,
+    transparent: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -175,8 +177,7 @@ async function createWindow() {
     },
     modal: true,
     maximizable: false,
-    resizable: false,
-    show: false,
+    resizable: false
   });
 
   loadingWindow.loadFile("src/loading.html");
@@ -213,8 +214,9 @@ async function createWindow() {
     height: 650,
     minWidth: 1000,
     minHeight: 650,
-    frame: false,
+    frame: config.systemWindow,
     show: false,
+    transparent: !config.systemWindow,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,

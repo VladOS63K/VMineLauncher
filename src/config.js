@@ -50,6 +50,7 @@ const DEFAULT_CONFIG = {
   discordRPC: false,
   minimizeToTrayOnClose: false,
   minimizeToTrayOnGameStart: false,
+  systemWindow: false,
   checkUpdates: true,
   javaPath: "",
   allocatedRam: 2,
