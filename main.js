@@ -61,8 +61,8 @@ launcher.on('package-extract', (e) => {
 launcher.on('arguments', (e) => {
   logMsg("Starting Minecraft");
   setRPC(getTranslation(currentLang, "rpc-active"), runningInstanceName);
-  mainWindow.webContents.send("starting-minecraft");
   if (config.minimizeToTrayOnGameStart) mainWindow.hide();
+  mainWindow.webContents.send("starting-minecraft");
 });
 launcher.on('close', (e) => {
   if (fakeAuth) {
@@ -137,6 +137,10 @@ async function retryLoadVersions() {
 
 async function tryDownloadAuthlibInjector() {
   return new Promise(async (resolve, reject) => {
+    if (loadingWindow) {
+      loadingWindow.show();
+      loadingWindow.webContents.send("status", `Downloading authlib injector${(loadVersionsAttempts > 0 ? ", attempt " + loadVersionsAttempts : "")}...`);
+    }
     try {
       const r = await fetch("https://github.com/yushijinhun/authlib-injector/releases/download/v1.2.7/authlib-injector-1.2.7.jar");
       if (r.ok) {
@@ -182,30 +186,61 @@ async function createWindow() {
 
   loadingWindow.loadFile("src/loading.html");
 
+  let currentStatus = "";
+
   loadingWindow.webContents.once("dom-ready", () => {
     loadingWindow.show();
-    loadingWindow.webContents.send("status", "Loading translations...");
+    loadingWindow.webContents.send("status", currentStatus);
   });
 
-  console.log("Loading translations...");
-  try {
-    await retryLoadTranslations();
-  }
-  catch (e) {
-    console.error(e);
-    process.exit(e);
-    return;
+  console.log("Checking authlib injector...");
+  currentStatus = "Checking authlib injector...";
+  loadingWindow.webContents.send("status", currentStatus);
+  if (!fs.existsSync(path.join(CONFIG_DIR, "authlib-injector.jar"))) {
+    try {
+      console.log("Authlib injector not found, downloading...");
+      await tryDownloadAuthlibInjector();
+      console.log("Authlib injector downloaded successfully");
+    }
+    catch (e) {
+      console.error("Failed to download authlib injector:", e);
+    }
   }
 
-  console.log("Loading versions...");
-  try {
-    await retryLoadVersions();
+  if (process.argv.includes("--notranslations")) {
+    console.log("--notranslations flag detected, skipping translations loading");
+  }
+  else {
+    currentStatus = "Loading translations...";
+    loadingWindow.webContents.send("status", currentStatus);
+    console.log("Loading translations...");
+    try {
+      await retryLoadTranslations();
+    }
+    catch (e) {
+      console.error(e);
+      process.exit(e);
+      return;
+    }
+  }
+
+  if (process.argv.includes("--noversions")) {
+    console.log("--noversions flag detected, skipping versions loading");
     loadingWindow.close();
   }
-  catch (e) {
-    console.log(e);
-    process.exit(e);
-    return;
+  else {
+    console.log("Loading versions...");
+    currentStatus = "Loading versions...";
+    loadingWindow.webContents.send("status", currentStatus);
+    try {
+      await retryLoadVersions();
+      loadingWindow.close();
+    }
+    catch (e) {
+      console.log(e);
+      process.exit(e);
+      return;
+    }
   }
 
   console.log("Creating Electron main window...");
@@ -230,29 +265,33 @@ async function createWindow() {
   mainWindow.setMenu(null);
 
   // Обработка управления окном
-  ipcMain.on("minimize-window", () => {
+  ipcMain.handle("minimize-window", (e) => {
     mainWindow.minimize();
+    return mainWindow.isMinimized();
   });
 
-  ipcMain.on("maximize-window", () => {
+  ipcMain.handle("maximize-window", (e) => {
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
     } else {
       mainWindow.maximize();
     }
+    return mainWindow.isMaximized();
   });
 
-  ipcMain.on("close-window", () => {
+  ipcMain.handle("close-window", (e) => {
     if (config.minimizeToTrayOnClose) {
       mainWindow.hide();
       return;
     }
     mainWindow.close();
+    return;
   });
 
   ipcMain.on("restart", () => {
     app.relaunch();
     app.exit();
+    return;
   });
 
   mainWindow.webContents.once("dom-ready", () => {
@@ -265,41 +304,37 @@ async function createWindow() {
       mainWindow.webContents.send("discordUser", discordUser);
     }
     mainWindow.show();
+    if (process.argv.includes("--devtools")) mainWindow.webContents.openDevTools();
   });
 
-  // Подключение Discord RPC
-  currentLang = config.lang;
-  if (config.discordRPC == true) {
-    rpc = await import("@nich87/discord-rpc");
-    rpcClient = new rpc.Client();
-    new Promise(async (resolve, reject) => {
-      try {
-        const { user } = await rpcClient.login({ clientId: '1482780481962512586' });
-        discordUser = user;
-
-        console.log(`[RPC] Logged in as ${discordUser.username}`);
-
-        await setRPC(getTranslation(currentLang, "rpc-unactive"), getTranslation(currentLang, "rpc-unactive"));
-        resolve();
-      }
-      catch (e) {
-        reject(e);
-      }
-    }).then(() => {
-      console.log("[RPC] Initialization success!");
-    }).catch((e) => {
-      console.log("[RPC] Init error:", e);
-      mainWindow.webContents.send("rpc-error", e);
-    });
+  if (process.argv.includes("--norpc")) {
+    console.log("--norpc flag detected, skipping Discord RPC initialization");
   }
+  else {
+    // Подключение Discord RPC
+    currentLang = config.lang;
+    if (config.discordRPC == true) {
+      rpc = await import("@nich87/discord-rpc");
+      rpcClient = new rpc.Client();
+      new Promise(async (resolve, reject) => {
+        try {
+          const { user } = await rpcClient.login({ clientId: '1482780481962512586' });
+          discordUser = user;
 
-  if (!fs.existsSync(path.join(CONFIG_DIR, "authlib-injector.jar"))) {
-    try {
-      await tryDownloadAuthlibInjector();
-      console.log("Authlib injector downloaded successfully");
-    }
-    catch (e) {
-      console.error("Failed to download authlib injector:", e);
+          console.log(`[RPC] Logged in as ${discordUser.username}`);
+
+          await setRPC(getTranslation(currentLang, "rpc-unactive"), getTranslation(currentLang, "rpc-unactive"));
+          resolve();
+        }
+        catch (e) {
+          reject(e);
+        }
+      }).then(() => {
+        console.log("[RPC] Initialization success!");
+      }).catch((e) => {
+        console.log("[RPC] Init error:", e);
+        mainWindow.webContents.send("rpc-error", e);
+      });
     }
   }
 
@@ -328,6 +363,10 @@ async function setRPC(details, state) {
   return new Promise(async (resolve, reject) => {
     const config = loadConfig();
     if (config.discordRPC == true) {
+      if (process.argv.includes("--norpc")) {
+        reject("Discord RPC is disabled by --norpc flag");
+        return;
+      }
       const activity = new rpc.PresenceBuilder()
         .setType(rpc.ActivityType.Playing)
         .setDetails((!app.isPackaged ? "[Debug] " : "") + details)
@@ -384,6 +423,11 @@ ipcMain.handle("get-theme", () => {
 ipcMain.handle("devtools", () => {
   mainWindow.webContents.openDevTools()
 });
+
+ipcMain.handle("check-argv", (e, flag) => {
+  return process.argv.includes(flag);
+});
+
 
 ipcMain.handle("create_instance_folder", (event, p) => {
   fs.mkdirSync(p);
@@ -448,6 +492,16 @@ ipcMain.handle("launch-minecraft", async (event, version, type, instanceName) =>
       // Проверка пути к Java
       if (!config.javaPath || !fs.existsSync(config.javaPath)) {
         reject("Java path is invalid");
+        return;
+      }
+
+      if (!fs.existsSync(path.join(CONFIG_DIR, "instances", instanceName))) {
+        reject("Instance path is invalid");
+        return;
+      }
+
+      if (!fs.existsSync(path.join(CONFIG_DIR, "authlib-injector.jar"))) {
+        reject("authlib-injector.jar is missing");
         return;
       }
 

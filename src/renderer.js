@@ -1,5 +1,3 @@
-"use strict";
-
 const { ipcRenderer, Notification } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -23,6 +21,8 @@ let selectedResPack = null;
 let deletingIndex = -1;
 let deletingName = "";
 let deletingAccountIndex = -1;
+
+let accountSkinRenderer = null;
 
 const CHARS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
 
@@ -70,6 +70,18 @@ async function getFaceURLFromEly(username) {
   }
 }
 
+async function getSkinBlobFromEly(username) {
+  const skinUrl = `https://skinsystem.ely.by/skins/${username}.png`;
+  try {
+    const response = await fetch(skinUrl);
+    if (!response.ok) throw new Error('Skin not found');
+    return await response.blob();
+  } catch (err) {
+    showNotification(err, "error");
+    return null;
+  }
+}
+
 document.addEventListener("keydown", (ev) => {
   if (ev.ctrlKey && ev.shiftKey && ev.key == "I") {
     ipcRenderer.invoke("devtools");
@@ -94,6 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <span>${message}</span>
     `;
 
+    console.log(`${type.toUpperCase()}: ${message}`);
     container.appendChild(notification);
     container.scrollTo(0, container.scrollHeight);
 
@@ -228,7 +241,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           ${(index === activeIndex) ? `<i class="fa-solid fa-check"></i>` : ""}
           <div class="account-details">
             <div class="account-name">${account.name}</div>
-            <div class="account-uuid">UUID: ${account.uuid}</div>
             <div class="account-type-label">${account.type === 'elyby' ? 'Ely.by' : getTranslation(currentLang, "offline")}</div>
           </div>
         </div>
@@ -288,28 +300,45 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
+    var face;
+    var skin;
+
     // Обновляем отображение активного пользователя в сайдбаре
     if (activeIndex !== -1 && accounts[activeIndex]) {
       const activeAccount = accounts[activeIndex];
 
-      var face;
-
       if (activeAccount.type === "elyby") {
         face = await getFaceURLFromEly(activeAccount.name);
+        skin = await getSkinBlobFromEly(activeAccount.name);
       }
       else if (activeAccount.type === "offline") {
         if (fs.existsSync(path.join(conf.CONFIG_DIR, "skins", `${activeAccount.name}.png`))) {
           var blob = new Blob([fs.readFileSync(path.join(conf.CONFIG_DIR, "skins", `${activeAccount.name}.png`))], { type: 'image/png' });
           face = await getFaceURL(blob);
+          skin = blob;
         }
         else {
           var blob = new Blob([fs.readFileSync(path.join(__dirname, "steve.png"))], { type: 'image/png' });
           face = await getFaceURL(blob);
+          skin = blob;
         }
       }
       document.querySelector(".user span").innerText = activeAccount.name;
       document.querySelector(".user img").src = face;
+
+      // Обновление просмотрщика скина
+      document.querySelector(".accounts-container .skin-view .loading-overlay").style.display = "flex";
+      if (accountSkinRenderer) {
+        accountSkinRenderer.unload();
+      }
+      accountSkinRenderer = new SkinRenderer(document.querySelector(".skin-view"), skin);
+
+      await accountSkinRenderer.render();
+      document.querySelector(".accounts-container .skin-view .loading-overlay").style.display = "none";
     } else {
+      if (accountSkinRenderer) {
+        accountSkinRenderer.unload();
+      }
       document.querySelector(".user span").innerText = "Guest";
       document.querySelector(".user img").src = "https://ui-avatars.com/api/?background=6a5acd&color=fff&name=Guest";
     }
@@ -317,12 +346,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function renderLanguages() {
     const langSelect = document.getElementById("lang-select");
+    if (await ipcRenderer.invoke("check-argv", "--notranslations")) {
+      const option = document.createElement("option");
+      option.innerText = "Translations disabled";
+
+      langSelect.appendChild(option);
+      return;
+    }
 
     const languages = Object.values(conf.LANGUAGE_ENDPOINTS);
-
     languages.forEach((e) => {
       const option = document.createElement("option");
-      option.innerText = e.lang;
+      option.innerText = e.displayName;
       option.value = e.lang;
 
       langSelect.appendChild(option);
@@ -354,6 +389,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function reloadLanguage() {
+    if (await ipcRenderer.invoke("check-argv", "--notranslations")) return;
     for (let i = 0; i < allElems.length; i++) {
       const elem = allElems[i];
       if (elem.dataset.tooltip && !elem.dataset.toolid) {
@@ -384,6 +420,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function reloadSettings() {
     isConfigLoading = true;
     config = conf.loadConfig();
+    console.log("Loaded config: ", config);
     if (config.firstRun) {
       config.firstRun = false;
       conf.saveConfig(config);
@@ -391,7 +428,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       showNotification(getTranslation(currentLang, "welcome-msg"));
     }
 
-    if (config.lang) {
+    if (config.lang && !await ipcRenderer.invoke("check-argv", "--notranslations")) {
       currentLang = config.lang;
       document.getElementById("lang-select").value = config.lang;
     }
@@ -403,10 +440,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       document.body.style.setProperty("--primary-color", config.accent);
     }
+    else {
+      console.log("No accent color");
+    }
 
     if (config.wallpaper) {
       document.getElementById("wallpaper-select").value = config.wallpaper;
-      document.body.style.backgroundImage = `url("file://${path.join(conf.CONFIG_DIR, "wallpapers", config.wallpaper)}")`
+      document.querySelector(".app-container").style.backgroundImage = `url("file://${path.join(conf.CONFIG_DIR, "wallpapers", config.wallpaper)}")`
     }
 
     document.getElementById("rpc-enabled").checked = config.discordRPC;
@@ -426,8 +466,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     document.getElementById("ram-alloc").value = config.allocatedRam;
 
-    reloadResourcePacks();
-    reloadScreenshots();
+    if (config.selectedVersion != "") {
+      reloadResourcePacks();
+      reloadScreenshots();
+    }
+
     renderAccountsList();
 
     isConfigLoading = false;
@@ -475,7 +518,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("theme-toggle").checked = true;
   }
 
-  await loadTranslations();
+  if (!await ipcRenderer.invoke("check-argv", "--notranslations")) await loadTranslations();
 
   // Изначальная отрисовка
   try {
@@ -591,6 +634,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  document.getElementById("reset-camera-btn").addEventListener("click", async () => {
+    if (accountSkinRenderer) {
+      await accountSkinRenderer.resetCamera();
+    }
+  });
+
   // Обработка кнопки добавления
   document.getElementById("add-build-btn").addEventListener("click", () => {
     document.getElementById("new-build-name").value = "";
@@ -600,7 +649,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Обработка открытия папки лаунчера
   document.getElementById("open-folder-btn").addEventListener("click", async () => {
-    await openFileManager(path.join(conf.CONFIG_DIR, "instances"));
+    // await openFileManager(path.join(conf.CONFIG_DIR, "instances"));
+    child_process.exec(`xdg-open "${conf.CONFIG_DIR}"`);
   });
 
   document.getElementById("modal-add-build-btn").addEventListener("click", () => {
@@ -712,11 +762,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadingGame.style.display = "none";
     document.getElementById("launch-btn").disabled = true;
     document.getElementById("launch-btn").innerHTML = `<i class=\"fas fa-check\"></i> ${getTranslation(currentLang, "game-started")}`;
+    new Audio("src/game_started.mp3").play();
     if (document.hasFocus()) {
       showNotification(getTranslation(currentLang, "game-started-msg"));
     }
     else {
-      ipcRenderer.send("show_notify", { title: "VMineLauncher", body: getTranslation(currentLang, "game-started-msg"), icon: "src/icon96.png", sound: "src/game_started.mp3" });
+      ipcRenderer.send("show_notify", { title: "VMineLauncher", body: getTranslation(currentLang, "game-started-msg"), icon: "src/icon96.png" });
     }
   });
 
@@ -889,20 +940,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Обработка кнопок управления окном
-  document.getElementById("minimize-btn").addEventListener("click", () => {
-    ipcRenderer.send("minimize-window");
+  document.getElementById("minimize-btn").addEventListener("click", async () => {
+    await ipcRenderer.invoke("minimize-window");
   });
 
-  document.getElementById("maximize-btn").addEventListener("click", () => {
-    ipcRenderer.send("maximize-window");
+  document.getElementById("maximize-btn").addEventListener("click", async () => {
+    if (!(await ipcRenderer.invoke("maximize-window"))) {
+      document.documentElement.classList.add("maximized");
+    }
+    else {
+      document.documentElement.classList.remove("maximized");
+    }
   });
 
-  document.getElementById("close-btn").addEventListener("click", () => {
+  document.getElementById("close-btn").addEventListener("click", async () => {
     if (isMinecraftRunning && !config.minimizeToTrayOnClose) {
       showNotification(getTranslation(currentLang, "minecraft-starting-msg"), "error");
       return;
     }
-    ipcRenderer.send("close-window");
+    await ipcRenderer.invoke("close-window");
   });
 
   // Кнопки Отмена в диалогах
@@ -941,10 +997,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Функция для сохранения настроек
-  function saveConfigSettings() {
+  async function saveConfigSettings() {
     if (isConfigLoading == true) return;
     const config = conf.loadConfig();
-    config.lang = document.getElementById("lang-select").value;
+    if (!await ipcRenderer.invoke("check-argv", "--notranslations")) config.lang = document.getElementById("lang-select").value;
     config.selectedVersion = document.getElementById("version-select").value;
     config.accent = document.querySelector("#accent-color-selector *[selected]").style.backgroundColor;
     config.wallpaper = document.getElementById("wallpaper-select").value;
@@ -956,6 +1012,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     config.javaPath = document.getElementById("java-path").value;
     config.allocatedRam = parseInt(document.getElementById("ram-alloc").value) || 2;
     conf.saveConfig(config);
+    console.log("Saved config: ", config);
     ipcRenderer.send("config-changed");
     reloadSettings();
   }
@@ -982,10 +1039,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Обработка переключения языка
-  document.getElementById("lang-select").addEventListener("change", () => {
-    saveConfigSettings();
-    reloadLanguage();
-  });
+  if (!await ipcRenderer.invoke("check-argv", "--notranslations")) {
+    document.getElementById("lang-select").addEventListener("change", () => {
+      currentLang = document.getElementById("lang-select").value;
+      saveConfigSettings();
+      reloadLanguage();
+    });
+  }
 
   // Обработка переключения темы
   document.getElementById("theme-toggle").addEventListener("change", async (e) => {

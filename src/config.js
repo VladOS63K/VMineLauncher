@@ -2,6 +2,7 @@
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
+const fsext = require("fs-extra");
 const glob = require("glob");
 const { randomUUID } = require("crypto");
 
@@ -29,8 +30,8 @@ const POSSIBLE_JAVA_PATHS = {
 };
 
 const LANGUAGE_ENDPOINTS = [
-  { lang: "en", endpoint: "https://localise.biz/api/export/locale/en.json?key=bSbcXshzd91RihGzANxqBZxxLDis62dO" },
-  { lang: "ru", endpoint: "https://localise.biz/api/export/locale/ru-RU.json?key=bSbcXshzd91RihGzANxqBZxxLDis62dO" }
+  { lang: "en", displayName: "English", endpoint: "https://localise.biz/api/export/locale/en.json?key=bSbcXshzd91RihGzANxqBZxxLDis62dO" },
+  { lang: "ru", displayName: "Русский", endpoint: "https://localise.biz/api/export/locale/ru-RU.json?key=bSbcXshzd91RihGzANxqBZxxLDis62dO" }
 ];
 
 // Пути конфигурации
@@ -44,7 +45,7 @@ const DEFAULT_CONFIG = {
   clientToken: null, // Требуется для аутентификации в Ely.by
   accounts: [],
   activeAccountIndex: -1,
-  accent: "#6a5acd",
+  accent: "rgb(106, 90, 205)",
   wallpaper: null,
   theme: "dark",
   discordRPC: false,
@@ -57,12 +58,13 @@ const DEFAULT_CONFIG = {
   instances: [
     // пример: { version: "1.20.1", type: "release", name: "Моя сборка", instanceFolder: path.join(CONFIG_DIR, "instances", "Моя сборка") }
   ],
-  selectedVersion: null,
+  selectedVersion: "",
 };
 
 // Создание директории конфигурации, если она не существует
 if (!fs.existsSync(CONFIG_DIR)) {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fsext.createFileSync(path.join(CONFIG_DIR, "latest.log"));
 }
 
 if (!fs.existsSync(path.join(CONFIG_DIR, "instances"))) {
@@ -103,11 +105,11 @@ function findJavaPath() {
 
 // Загрузка конфигурации
 function loadConfig() {
-  let config = { ...DEFAULT_CONFIG };
+  let config = DEFAULT_CONFIG;
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const configData = fs.readFileSync(CONFIG_FILE, "utf-8");
-      config = { ...config, ...JSON.parse(configData) };
+      config = JSON.parse(configData);
     }
 
     // Миграция со старой системы аккаунтов

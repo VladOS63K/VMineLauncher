@@ -13,6 +13,11 @@
     <link
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
       rel="stylesheet">
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   </head>
   <body>
     <div class="tooltip">ToolTip</div>
@@ -348,13 +353,25 @@
         <div class="content-section" id="accounts-section">
           <h1 data-transid="manage-accounts">Управление аккаунтами</h1>
           <div class="accounts-container">
-            <button id="add-account-btn" class="button">
-              <i class="fas fa-user-plus"></i> <span
-                data-transid="add-account">Доб. аккаунт</span>
-            </button>
+            <div class="accounts-manager">
+              <button id="add-account-btn" class="button">
+                <i class="fas fa-user-plus"></i> <span
+                  data-transid="add-account">Доб. аккаунт</span>
+              </button>
 
-            <div id="accounts-list" class="accounts-list">
-              <!-- Аккаунты будут загружаться динамически -->
+              <div id="accounts-list" class="accounts-list">
+                <!-- Аккаунты будут загружаться динамически -->
+              </div>
+            </div>
+            <div class="skin-view">
+              <div class="loading-overlay" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Загрузка...</p>
+              </div>
+              <button class="button secondary" data-tooltip="Сбросить положение камеры"
+                data-toolid="reset-camera-tooltip" id="reset-camera-btn">
+                <i class="fas fa-crosshairs"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -447,7 +464,7 @@
                 </label>
               </div>
 
-               <div class="setting-item">
+              <div class="setting-item">
                 <label for="system-window"
                   data-transid="system-window">Системная рамка окна</label>
                 <label class="switch">
@@ -489,6 +506,7 @@
       </div>
     </div>
 
+    <script src="skinrenderer.js"></script>
     <script src="renderer.js"></script>
   </body>
 </html>

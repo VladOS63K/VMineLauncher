@@ -1,3 +1,3 @@
 # VMineLauncher
 
-Vannila Minecraft Launcher for Linux.
+Vanilla Minecraft Launcher for Linux.
